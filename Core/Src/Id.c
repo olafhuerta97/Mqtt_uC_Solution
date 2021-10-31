@@ -21,6 +21,7 @@ void* mqtt_id_get_subtopic(const char *subtopic){
 	}else{
 		Id_Topic_Info.Valid=FALSE;
 	}
+	PRINT_MESG_UART("ID subtopic %d\n" , Id_Topic_Info.Valid);
 	return &Id_Topic_Info;
 }
 void mqtt_id_handler(const char * data, u16_t len , void* subtopics_void){

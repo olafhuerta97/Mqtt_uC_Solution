@@ -26,11 +26,18 @@ static char Device_suscription[MAX_LENGTH_TOPIC];
 static mqtt_client_t mqtt_client;
 static topics_info_type device_topics[NUMBER_OF_TOPICS];
 static uint8_t Topics_initializated = FALSE;
+
+
 static void mqtt_connection_cb(mqtt_client_t *client, void *arg, mqtt_connection_status_t status);
 static void mqtt_sub_request_cb(void *arg, err_t result) ;
 static void mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len, u8_t flags);
 static void mqtt_incoming_publish_cb(void *arg, const char *topic, u32_t tot_len);
 static void mqtt_pub_request_cb(void *arg, err_t result);
+static void Initialize_Topic(topics_info_type* device_topics_init, Mqtt_topics Topic_To_Initialize ,const char* Topic_Name,
+		void* TopicHandler, void * SubtopicHandler );
+static void Default_TopicHandler(const char * data, u16_t len , void* subtopics_void);
+static void* Default_SubTopicHandler(const char *subtopic);
+
 
 void MQTT_Cust_HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 	if (GPIO_Pin == Button_Pin){
@@ -64,29 +71,13 @@ void mqtt_publish_cust(const char *subtopic, const char *pub_payload,Mqtt_topics
 }
 
 static void Init_Topics(topics_info_type* device_topics_init){
-
 	concatenate(Device_suscription,CONFIG_CLIENT_ID_NAME,INPUT,SUSCRIBE_TOPIC);
-
-	concatenate(device_topics_init[LEDS].Input_topic,CONFIG_CLIENT_ID_NAME,INPUT,LEDS_TOPIC);
-	concatenate(device_topics_init[LEDS].Output_topic ,CONFIG_CLIENT_ID_NAME,OUTPUT,LEDS_TOPIC);
-
-	concatenate(device_topics_init[ID].Input_topic,CONFIG_CLIENT_ID_NAME,INPUT,ID_TOPIC);
-	concatenate(device_topics_init[ID].Output_topic,CONFIG_CLIENT_ID_NAME,OUTPUT,ID_TOPIC);
-
-	concatenate(device_topics_init[BUTTON].Output_topic,CONFIG_CLIENT_ID_NAME,OUTPUT,BUTTON_TOPIC);
-	concatenate(device_topics_init[BUTTON].Input_topic,CONFIG_CLIENT_ID_NAME,OUTPUT,BUTTON_TOPIC);
-
-	concatenate(device_topics_init[HEARTBEAT].Output_topic,CONFIG_CLIENT_ID_NAME,OUTPUT,HB_TOPIC);
-	concatenate(device_topics_init[HEARTBEAT].Input_topic,CONFIG_CLIENT_ID_NAME,INPUT,HB_TOPIC);
-
-	for (int i = 0; i<= NUMBER_OF_TOPICS; i++){
-		device_topics_init[i].Topic_valid = FALSE;
-	}
-	device_topics_init[LEDS].Topic_Handler = mqtt_leds_handler;
-	device_topics_init[ID].Topic_Handler = mqtt_id_handler;
-	device_topics_init[LEDS].Subtopics_handler = mqtt_leds_get_subtopic;
-	device_topics_init[ID].Subtopics_handler = mqtt_id_get_subtopic;
+	Initialize_Topic(device_topics_init, LEDS ,LEDS_TOPIC,mqtt_leds_handler, mqtt_leds_get_subtopic);
+	Initialize_Topic(device_topics_init, ID ,ID_TOPIC,mqtt_id_handler, mqtt_id_get_subtopic);
+	Initialize_Topic(device_topics_init, HEARTBEAT ,HB_TOPIC,NULL, NULL);
+	Initialize_Topic(device_topics_init, BUTTON ,BUTTON_TOPIC,NULL, NULL);
 }
+
 
 void mqtt_do_connect(void) {
 
@@ -183,7 +174,7 @@ static void mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len, u8_t f
 	See MQTT_VAR_HEADER_BUFFER_LEN) */
 	if(flags & MQTT_DATA_FLAG_LAST) {
 
-		for (Topic_received = 0; Topic_received<= NUMBER_OF_TOPICS; Topic_received++)
+		for (Topic_received = 0; Topic_received< NUMBER_OF_TOPICS; Topic_received++)
 		{
 			if(Incoming_data[Topic_received].Topic_valid == TRUE)
 			{
@@ -194,6 +185,7 @@ static void mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len, u8_t f
 		}
 	} else {
 		/* Handle fragmented payload, store in buffer, write to file or whatever */
+
 	}
 
 }
@@ -211,5 +203,37 @@ static void mqtt_pub_request_cb(void *arg, err_t result) {
    PRINT_MESG_UART("Publish result: %d\n", result);
  }
 }
+
+static void Initialize_Topic(topics_info_type* device_topics_init, Mqtt_topics Topic_To_Initialize ,const char* Topic_Name,
+		void* TopicHandler, void * SubtopicHandler ){
+	concatenate(device_topics_init[Topic_To_Initialize].Input_topic,CONFIG_CLIENT_ID_NAME,INPUT,Topic_Name);
+	concatenate(device_topics_init[Topic_To_Initialize].Output_topic ,CONFIG_CLIENT_ID_NAME,OUTPUT,Topic_Name);
+	device_topics_init[Topic_To_Initialize].Topic_valid = FALSE;
+
+	if (TopicHandler != NULL )
+	{
+		device_topics_init[Topic_To_Initialize].Topic_Handler = TopicHandler;
+	}else
+	{
+		device_topics_init[Topic_To_Initialize].Topic_Handler = Default_TopicHandler;
+	}
+	if (SubtopicHandler != NULL )
+	{
+		device_topics_init[Topic_To_Initialize].Subtopics_handler = SubtopicHandler;
+	}else
+	{
+		device_topics_init[Topic_To_Initialize].Subtopics_handler = Default_SubTopicHandler;
+	}
+
+}
+
+static void Default_TopicHandler(const char * data, u16_t len , void* subtopics_void){
+
+}
+
+static void* Default_SubTopicHandler(const char *subtopic){
+	return NULL;
+}
+
 
 

@@ -136,7 +136,7 @@ static void Led_Action_Handler(Leds Led_no, const char* data){
 		GPIO_led = LD3_GPIO_Port;
 		Pin = LD3_Pin;
 	}else{
-		PRINT_MESG_UART("Invalid subtopic in leds %d\n", Led_no);
+		PRINT_MESG_UART("Invalid subtopic in led number: %d\n", Led_no+1);
 		return;
 	}
 	if(strncmp(data, ON,strlen(ON)) == 0) {
@@ -147,7 +147,7 @@ static void Led_Action_Handler(Leds Led_no, const char* data){
 		Action=Toggle;
 	}else {
 		Action=None;
-		PRINT_MESG_UART("Invalid action in leds %d\n");
+		PRINT_MESG_UART("Invalid action in leds \n");
 		return;
 	}
 	Hw_Led_Action(GPIO_led, Pin, Action);
