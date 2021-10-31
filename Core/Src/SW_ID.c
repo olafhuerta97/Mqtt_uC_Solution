@@ -7,11 +7,11 @@
 #include <string.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include "SW_ID.h"
 #include "config.h"
-#include "Id.h"
 #include "Mqtt_cust.h"
-#define SW_VERSION 								"0.0.1"
-#define  GET_ID          						"GET"
+#define  SW_VERSION 								"SW ID 0.0.1"
+#define  GET_ID          						     "GET"
 
 static id_subtopics Id_Topic_Info;
 
@@ -30,10 +30,10 @@ void mqtt_id_handler(const char * data, u16_t len , void* subtopics_void){
 		PRINT_MESG_UART("Invalid subtopic in topic ID%\n");
 		return;
 	}else{
-		if(strncmp(data, GET_ID,strlen(GET_ID)) == 0) {
+		if(strncmp(data, GET_ID,strlen(GET_ID)) == 0 && len == strlen(GET_ID)) {
 			mqtt_publish_cust("",SW_VERSION,ID);
 		}else {
-			PRINT_MESG_UART("Invalid subtopic in topic ID%\n");
+			PRINT_MESG_UART("Invalid data in topic ID%\n");
 		}
 	}
 
