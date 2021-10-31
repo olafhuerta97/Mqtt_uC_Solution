@@ -46,7 +46,24 @@ void MQTT_Cust_HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 }
 
 void MQTT_PeriodElapsedTim(TIM_HandleTypeDef *htim){
-	mqtt_publish_cust("","Heartbeat",HEARTBEAT);
+	if(htim->Instance == TIM2 )
+	{
+		mqtt_publish_cust("","Heartbeat",HEARTBEAT);
+	}else if(htim->Instance == TIM3 )
+	{
+		PRINT_MESG_UART("Timer \n");
+		__HAL_TIM_SET_AUTORELOAD(htim,2000);
+	}else if(htim->Instance == TIM4 )
+	{
+
+	}
+	else if (htim->Instance == TIM5 ){
+
+	}else{
+
+	}
+
+
 }
 
 void mqtt_publish_cust(const char *subtopic, const char *pub_payload,Mqtt_topics sender) {

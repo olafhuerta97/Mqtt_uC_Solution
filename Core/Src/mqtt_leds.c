@@ -85,7 +85,8 @@ void* mqtt_leds_get_subtopic(const char *subtopic){
 	else if (*command_info == 0)
 	{
 		mqtt_led_info[Led_index].command=Action;
-	}else
+	}
+	else
 	{
 		PRINT_MESG_UART("Led action invalid\n");
 		mqtt_led_info[Led_index].command= None;
