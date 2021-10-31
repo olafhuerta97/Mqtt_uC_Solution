@@ -47,7 +47,7 @@ extern "C" {
 
 /* Exported macro ------------------------------------------------------------*/
 /* USER CODE BEGIN EM */
-
+extern TIM_HandleTypeDef htim3;
 /* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/

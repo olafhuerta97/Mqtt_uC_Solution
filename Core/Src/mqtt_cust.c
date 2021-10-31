@@ -4,9 +4,6 @@
  *  Created on: Oct 24, 2021
  *      Author: Olaf
  */
-#include <string.h>
-#include <stdarg.h>
-#include <stdio.h>
 #include "mqtt.h"
 #include "lwip/apps/mqtt_priv.h"
 #include "mqtt_opts.h"
@@ -15,7 +12,9 @@
 #include "utils_cust.h"
 #include "id.h"
 #include "button.h"
+#include "HeartBeat.h"
 #include "mqtt_cust.h"
+
 /*
  * THIS PROJECT IS A REMINDER TO MYSELF TO NOT USE DINAMIC MEMORY IN EMBEDDED SYSTEMS
  *
@@ -46,23 +45,23 @@ void MQTT_Cust_HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 }
 
 void MQTT_PeriodElapsedTim(TIM_HandleTypeDef *htim){
-	if(htim->Instance == TIM2 )
+	if(htim->Instance == LEDS_TIMER )
 	{
-		mqtt_publish_cust("","Heartbeat",HEARTBEAT);
-	}else if(htim->Instance == TIM3 )
+
+	}else if(htim->Instance == HB_TIMER )
 	{
-		PRINT_MESG_UART("Timer \n");
-		__HAL_TIM_SET_AUTORELOAD(htim,2000);
-	}else if(htim->Instance == TIM4 )
+		HeartBeatTimerHandler(htim);
+	}else if(htim->Instance == FREE_TIMER_1 )
 	{
 
 	}
-	else if (htim->Instance == TIM5 ){
-
-	}else{
+	else if (htim->Instance == FREE_TIMER_2 ){
 
 	}
-
+	else
+	{
+		//Other Timer
+	}
 
 }
 
@@ -91,7 +90,7 @@ static void Init_Topics(topics_info_type* device_topics_init){
 	concatenate(Device_suscription,CONFIG_CLIENT_ID_NAME,INPUT,SUSCRIBE_TOPIC);
 	Initialize_Topic(device_topics_init, LEDS ,LEDS_TOPIC,mqtt_leds_handler, mqtt_leds_get_subtopic);
 	Initialize_Topic(device_topics_init, ID ,ID_TOPIC,mqtt_id_handler, mqtt_id_get_subtopic);
-	Initialize_Topic(device_topics_init, HEARTBEAT ,HB_TOPIC,NULL, NULL);
+	Initialize_Topic(device_topics_init, HEARTBEAT ,HB_TOPIC,HeartBeat_TopicHandler, HeartBeat_SubTopicHandler);
 	Initialize_Topic(device_topics_init, BUTTON ,BUTTON_TOPIC,NULL, NULL);
 }
 
@@ -245,10 +244,11 @@ static void Initialize_Topic(topics_info_type* device_topics_init, Mqtt_topics T
 }
 
 static void Default_TopicHandler(const char * data, u16_t len , void* subtopics_void){
-
+	PRINT_MESG_UART("Default Topic Handler \n");
 }
 
 static void* Default_SubTopicHandler(const char *subtopic){
+	PRINT_MESG_UART("Default Sub_Topic Handler \n");
 	return NULL;
 }
 

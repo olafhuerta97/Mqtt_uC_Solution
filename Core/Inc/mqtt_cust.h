@@ -7,8 +7,12 @@
 
 #ifndef INC_MQTT_CUST_H_
 #define INC_MQTT_CUST_H_
+#include <string.h>
+#include <stdarg.h>
+#include <stdio.h>
 #include "main.h"
 #include "config.h"
+
 typedef enum
 {
   LEDS       = 0x00U,
@@ -25,6 +29,11 @@ typedef enum
 #define ID_TOPIC 				"/Id"
 #define BUTTON_TOPIC 			"/Button"
 #define HB_TOPIC 			    "/HeartBeat"
+
+#define LEDS_TIMER 				TIM2
+#define HB_TIMER 			    TIM3
+#define FREE_TIMER_1 		    TIM4
+#define FREE_TIMER_2 		    TIM5
 
 typedef struct {
 	uint8_t Topic_valid;
