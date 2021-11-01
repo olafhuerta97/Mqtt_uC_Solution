@@ -47,7 +47,7 @@ void MQTT_Cust_HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 void MQTT_PeriodElapsedTim(TIM_HandleTypeDef *htim){
 	if(htim->Instance == LEDS_TIMER )
 	{
-
+		LedsTimerHandler(htim);
 	}else if(htim->Instance == HB_TIMER )
 	{
 		HeartBeatTimerHandler(htim);

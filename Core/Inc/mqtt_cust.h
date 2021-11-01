@@ -30,9 +30,9 @@ typedef enum
 #define BUTTON_TOPIC 			"/Button"
 #define HB_TOPIC 			    "/HeartBeat"
 
-#define LEDS_TIMER 				TIM2
+#define FREE_TIMER_1			TIM2
 #define HB_TIMER 			    TIM3
-#define FREE_TIMER_1 		    TIM4
+#define LEDS_TIMER 	     	    TIM4
 #define FREE_TIMER_2 		    TIM5
 
 typedef struct {
