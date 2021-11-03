@@ -37,6 +37,7 @@ typedef enum
 
 typedef struct {
 	uint8_t Topic_valid;
+	u8_t 	Qos;
 	void*   Subtopics;
 	 char 	Output_topic[MAX_LENGTH_TOPIC];
 	 char	    Input_topic[MAX_LENGTH_TOPIC];

@@ -30,6 +30,8 @@ typedef enum
 } Leds;
 
 
+#define COMPARE_STR(DATA,POINTER_TO_DATA,LEN)     strncmp(POINTER_TO_DATA, DATA,strlen(DATA)) == 0 && LEN == strlen(DATA)
+
 typedef enum
 {
 	Off      = 0x00U,
@@ -55,16 +57,20 @@ typedef struct {
 	uint16_t    	time;
 }led_info_struct;
 
-#define LED_MASTER_ARRAY  												            \
+#define LED_MASTER_ARRAY  									   				 \
 		{"/Led1",	FALSE,	No_command , FALSE, 1u },			\
 		{"/Led2",	FALSE,	No_command , FALSE, 1u },			\
 		{"/Led3",	FALSE,	No_command , FALSE, 1u },			\
 
 
 static led_info_struct mqtt_led_info[Number_of_leds] = {LED_MASTER_ARRAY };
+
+
 static void Hw_Led_Action(GPIO_TypeDef* GPIO_led, uint16_t Pin, Led_Action Action);
-static void Led_Action_Handler(Leds Led_no, const char* data);
+static void Led_Action_Handler(Leds Led_no, const char* data, u16_t len);
 static void Leds_Get_GPIO_and_Pin(Leds Led_no,GPIO_TypeDef** GPIO_led,uint16_t *Pin);
+
+
 /*Timer runs every second*/
 void LedsTimerHandler(TIM_HandleTypeDef *htim){
 	static uint32_t seconds = 0;
@@ -80,7 +86,6 @@ void LedsTimerHandler(TIM_HandleTypeDef *htim){
 			mqtt_publish_cust(mqtt_led_info[Led_index].LedTopic,msg , LEDS);
 		}
 	}
-
 	seconds++;
 }
 
@@ -93,7 +98,6 @@ void* mqtt_leds_get_subtopic(const char *subtopic){
 		if(strncmp(subtopic, mqtt_led_info[Led_index].LedTopic,LEDNUMBERSTRINGSIZE-1) == 0)
 		{
 			mqtt_led_info[Led_index].action_pending = TRUE;
-			PRINT_MESG_UART("detected led %d\n", Led_index);
 			break;
 		}
 	}
@@ -103,15 +107,15 @@ void* mqtt_leds_get_subtopic(const char *subtopic){
 		return &mqtt_led_info;
 	}
 	command_info = &subtopic[LEDNUMBERSTRINGSIZE-1];
-	PRINT_MESG_UART("%s\n",command_info);
-	if(strncmp(command_info, INFORM,strlen(INFORM)) == 0 ) {
+
+	if(strcmp(command_info, INFORM) == 0 ) {
 		mqtt_led_info[Led_index].command=Inform;
 	}
 	else if (*command_info == 0)
 	{
 		mqtt_led_info[Led_index].command=Action;
 	}
-	else if (strncmp(command_info, TIME,strlen(TIME)) == 0 )
+	else if (strcmp(command_info, TIME) == 0 )
 	{
 		mqtt_led_info[Led_index].command=Time;
 	}
@@ -136,14 +140,14 @@ void mqtt_leds_handler(const char * data, u16_t len , void* subtopics_void){
 			PRINT_MESG_UART("detected led %d\n", Led_index);
 			if(subtopics[Led_index].command == Action)
 			{
-				Led_Action_Handler(Led_index, data);
+				Led_Action_Handler(Led_index, data , len);
 			}
 			else if(subtopics[Led_index].command == Inform)
 			{
-				if(strncmp(data, ON,strlen(ON)) == 0)
+				if(COMPARE_STR(ON,data,len))
 				{
 					subtopics[Led_index].inform = TRUE;
-				}else if(strncmp(data, OFF,strlen(OFF)) == 0)
+				}else if(COMPARE_STR(OFF,data,len))
 				{
 					subtopics[Led_index].inform = FALSE;
 				}else {
@@ -156,7 +160,8 @@ void mqtt_leds_handler(const char * data, u16_t len , void* subtopics_void){
 				if (atoi_succeed == TRUE){
 					subtopics->time = new_time;
 				}
-				else {
+				else
+				{
 					PRINT_MESG_UART("Format incorrect\n");
 				}
 			}else
@@ -171,7 +176,7 @@ void mqtt_leds_handler(const char * data, u16_t len , void* subtopics_void){
 }
 
 
-static void Led_Action_Handler(Leds Led_no, const char* data){
+static void Led_Action_Handler(Leds Led_no, const char* data, u16_t len){
 	GPIO_TypeDef* GPIO_led = NULL ;
 	uint16_t Pin;
 	Led_Action Action;
@@ -186,18 +191,25 @@ static void Led_Action_Handler(Leds Led_no, const char* data){
 		return;
 	}
 	Action=None;
-	if(strncmp(data, ON,strlen(ON)) == 0) {
+	if(COMPARE_STR(ON,data,len)) {
 		Action=On;
-	}else if(strncmp(data, OFF,strlen(OFF)) == 0) {
+	}
+	else if(COMPARE_STR(OFF,data,len))
+	{
 		Action=Off;
-	}else if(strncmp(data, TOGGLE,strlen(TOGGLE)) == 0) {
+	}
+	else if(COMPARE_STR(TOGGLE,data,len))
+	{
 		Action=Toggle;
-	}else if(strncmp(data, STATUS,strlen(STATUS)) == 0){
+	}
+	else if(COMPARE_STR(STATUS,data,len))
+	{
 		sprintf(msg, "Led %d status is %d",Led_no+1, HAL_GPIO_ReadPin(GPIO_led, Pin) );
 		mqtt_publish_cust("",msg , LEDS);
 	}
-	else{
-		PRINT_MESG_UART("Invalid action in leds \n");
+	else
+	{
+		PRINT_MESG_UART("Invalid action in LEDs \n");
 	}
 	if (Action != None){
 		Hw_Led_Action(GPIO_led, Pin, Action);

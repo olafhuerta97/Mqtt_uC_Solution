@@ -116,8 +116,11 @@ int main(void)
   MX_TIM4_Init();
   MX_TIM5_Init();
   /* USER CODE BEGIN 2 */
+  /*Wait for LWIP process to initialize*/
   HAL_Delay(1000);
+  /*Conect to Mqtt protocol and suscribe to device specific topic*/
   mqtt_do_connect();
+  /*Init HW timers*/
   HAL_TIM_Base_Start_IT(&htim2);
   HAL_TIM_Base_Start_IT(&htim3);
   HAL_TIM_Base_Start_IT(&htim4);
@@ -492,7 +495,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 }
 
 
-#define PRINT  1
+#define PRINT  0
 void PRINT_MESG_UART(const char * format, ... )
 {
 #if PRINT
