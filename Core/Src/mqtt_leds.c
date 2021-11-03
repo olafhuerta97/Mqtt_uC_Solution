@@ -11,9 +11,10 @@
 #include "main.h"
 #include "mqtt.h"
 #include "mqtt_leds.h"
+#include "utils_cust.h"
 
 #define INFORM 	"/Inform"
-
+#define TIME 	"/Time"
 
 #define LEDNUMBERSTRINGSIZE        6
 #define ON    	"ON"
@@ -41,7 +42,8 @@ typedef enum
 {
 	No_command        = 0x00,
 	Action,
-	Inform
+	Inform,
+	Time
 } Leds_commands;
 
 
@@ -71,7 +73,7 @@ void LedsTimerHandler(TIM_HandleTypeDef *htim){
 	uint16_t Pin;
 	char msg[50];
 	for(Led_index = 0;Led_index<Number_of_leds;++Led_index){
-		if(mqtt_led_info[Led_index].inform == TRUE)
+		if(mqtt_led_info[Led_index].inform == TRUE && 0 == seconds%mqtt_led_info[Led_index].time)
 		{
 			Leds_Get_GPIO_and_Pin(Led_index,&GPIO_led,&Pin);
 			sprintf(msg, "Led %d status is %d",Led_index+1, HAL_GPIO_ReadPin(GPIO_led, Pin) );
@@ -79,6 +81,7 @@ void LedsTimerHandler(TIM_HandleTypeDef *htim){
 		}
 	}
 
+	seconds++;
 }
 
 
@@ -101,12 +104,16 @@ void* mqtt_leds_get_subtopic(const char *subtopic){
 	}
 	command_info = &subtopic[LEDNUMBERSTRINGSIZE-1];
 	PRINT_MESG_UART("%s\n",command_info);
-	if(strncmp(command_info, INFORM,strlen(INFORM)) == 0) {
+	if(strncmp(command_info, INFORM,strlen(INFORM)) == 0 ) {
 		mqtt_led_info[Led_index].command=Inform;
 	}
 	else if (*command_info == 0)
 	{
 		mqtt_led_info[Led_index].command=Action;
+	}
+	else if (strncmp(command_info, TIME,strlen(TIME)) == 0 )
+	{
+		mqtt_led_info[Led_index].command=Time;
 	}
 	else
 	{
@@ -119,6 +126,8 @@ void* mqtt_leds_get_subtopic(const char *subtopic){
 void mqtt_leds_handler(const char * data, u16_t len , void* subtopics_void){
 	led_info_struct* subtopics =(led_info_struct*)subtopics_void;
 	Leds Led_index;
+	uint32_t new_time;
+	uint8_t atoi_succeed;
 	for(Led_index = 0;Led_index<Number_of_leds;++Led_index)
 	{
 		if(subtopics[Led_index].action_pending == TRUE)
@@ -139,6 +148,16 @@ void mqtt_leds_handler(const char * data, u16_t len , void* subtopics_void){
 					subtopics[Led_index].inform = FALSE;
 				}else {
 					PRINT_MESG_UART("Command invalid");
+				}
+			}
+			else if(subtopics[Led_index].command == Time)
+			{
+				atoi_succeed = Atoi_Cust((char*)data, len, &new_time);
+				if (atoi_succeed == TRUE){
+					subtopics->time = new_time;
+				}
+				else {
+					PRINT_MESG_UART("Format incorrect\n");
 				}
 			}else
 			{
