@@ -28,8 +28,8 @@ void HeartBeatTimerHandler(TIM_HandleTypeDef *htim){
 	char msg[50];
 	if (HB_info.Status == TRUE)
 	{
-	sprintf(msg, "HeartBeat every %d ms", HB_info.time);
-	mqtt_publish_cust("",msg,HEARTBEAT);
+		sprintf(msg, "HeartBeat every %d ms", HB_info.time);
+		mqtt_publish_cust("",msg,HEARTBEAT);
 	}
 
 }
@@ -41,25 +41,38 @@ void HeartBeat_TopicHandler(const char * data, u16_t len , void* subtopics_void)
 	PRINT_MESG_UART("HeartBeat Topic Handler\n");
 	if (HB_info_incoming->action_pending == None){
 		return;
-	}else if (HB_info_incoming->action_pending == Time){
+	}
+	else if (HB_info_incoming->action_pending == Time){
 		atoi_succeed = Atoi_Cust((char*)data, len, &new_time);
 		if (atoi_succeed == TRUE){
-		__HAL_TIM_SET_AUTORELOAD(&htim3,new_time*2);
-		__HAL_TIM_SET_COUNTER(&htim3,0);
-		HB_info_incoming->time = new_time;
+			if (new_time >= 500 && new_time <= 30000){
+
+				__HAL_TIM_SET_AUTORELOAD(&htim3,new_time*2);
+				__HAL_TIM_SET_COUNTER(&htim3,0);
+				HB_info_incoming->time = new_time;
+				mqtt_publish_cust("","Set Heartbeat time", HEARTBEAT);
+			}
+			else{
+				mqtt_publish_cust("","Heartbeat out of bounds", HEARTBEAT);
+			}
+
 		}else {
 			PRINT_MESG_UART("Format incorrect\n");
+			mqtt_publish_cust("","Format incorrect\n", HEARTBEAT);
 		}
 	}
 	else if (HB_info_incoming->action_pending == Status){
 		if (strncmp(data, "ON",strlen("ON")) == 0  && len == strlen ("ON")){
 			HB_info.Status = TRUE;
+			mqtt_publish_cust("","Heartbeat turn on", HEARTBEAT);
 		}
 		else if (strncmp(data, "OFF",strlen("OFF")) == 0  && len == strlen("OFF")){
 			HB_info.Status = FALSE;
+			mqtt_publish_cust("","Heartbeat turn off", HEARTBEAT);
 		}
 		else {
 			PRINT_MESG_UART("Invalid data ON/OFF\n");
+			mqtt_publish_cust("","Invalid data ON/OFF", HEARTBEAT);
 		}
 	}
 	else {
@@ -80,6 +93,7 @@ void* HeartBeat_SubTopicHandler(const char *subtopic){
 	}
 	else
 	{
+		mqtt_publish_cust("","Heartbeat topic invalid\n", HEARTBEAT);
 		HB_info.action_pending = None;
 		PRINT_MESG_UART("Heartbeat topic invalid\n");
 	}

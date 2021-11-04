@@ -177,6 +177,7 @@ static void mqtt_incoming_publish_cb(void *arg, const char *topic, u32_t tot_len
 	{
 		/* For all other topics */
 		PRINT_MESG_UART("Invalid Topic\n");
+		mqtt_publish(&mqtt_client, "F767/Output", "Wrong topic for F767", strlen("Wrong topìc for F767"), 0, 0, mqtt_pub_request_cb, NULL);
 	}
 }
 
