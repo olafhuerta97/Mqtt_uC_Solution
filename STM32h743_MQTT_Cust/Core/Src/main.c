@@ -16,9 +16,6 @@
   *
   ******************************************************************************
   */
-#include <string.h>
-#include <stdarg.h>
-#include <stdio.h>
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
@@ -500,12 +497,12 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
-	MQTT_PeriodElapsedTim(htim);
+	Mqtt_Timer_ISR_Handler(htim);
 }
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-	MQTT_Cust_HAL_GPIO_EXTI_Callback(GPIO_Pin);
+	Mqtt_Ext_Int_ISR_Handler(GPIO_Pin);
 }
 
 

@@ -4,14 +4,8 @@
  *  Created on: Oct 26, 2021
  *      Author: Olaf
  */
-#include <string.h>
-#include <stdarg.h>
-#include <stdio.h>
 #include "MQTT_main.h"
-#include "main.h"
-#include "mqtt.h"
 #include "mqtt_leds.h"
-#include "utils_cust.h"
 
 #define INFORM 	"/Inform"
 #define TIME 	"/Time"
@@ -21,6 +15,7 @@
 #define OFF   	"OFF"
 #define TOGGLE 	"TOGGLE"
 #define STATUS 	"STATUS"
+
 typedef enum
 {
 	Led1,
@@ -82,7 +77,7 @@ void LedsTimerHandler(TIM_HandleTypeDef *htim){
 		{
 			Leds_Get_GPIO_and_Pin(Led_index,&GPIO_led,&Pin);
 			sprintf(msg, "Led %d status is %d",Led_index+1, HAL_GPIO_ReadPin(GPIO_led, Pin) );
-			mqtt_publish_cust(mqtt_led_info[Led_index].LedTopic,msg , LEDS);
+			Mqtt_Publish_Cust(mqtt_led_info[Led_index].LedTopic,msg , LEDS);
 		}
 	}
 	seconds++;
@@ -102,7 +97,7 @@ void* mqtt_leds_get_subtopic(const char *subtopic){
 	}
 	if(mqtt_led_info[Led_index].action_pending == FALSE)
 	{
-		mqtt_publish_cust("","Invalid topic format", LEDS);
+		Mqtt_Publish_Cust("","Invalid topic format", LEDS);
 		PRINT_MESG_UART("Led topic invalid\n");
 		return &mqtt_led_info;
 	}
@@ -124,7 +119,7 @@ void* mqtt_leds_get_subtopic(const char *subtopic){
 		PRINT_MESG_UART("Led action invalid\n");
 		mqtt_led_info[Led_index].command= None;
 		mqtt_led_info[Led_index].action_pending = FALSE;
-		mqtt_publish_cust(mqtt_led_info[Led_index].LedTopic,
+		Mqtt_Publish_Cust(mqtt_led_info[Led_index].LedTopic,
 		"Invalid subtopic format", LEDS);
 	}
 	return &mqtt_led_info;
@@ -166,7 +161,7 @@ void mqtt_leds_handler(const char * data, u16_t len , void* subtopics_void){
 				else
 				{
 					PRINT_MESG_UART("Format incorrect\n");
-					mqtt_publish_cust(mqtt_led_info[Led_index].LedTopic,
+					Mqtt_Publish_Cust(mqtt_led_info[Led_index].LedTopic,
 					"Invalid format for time, please just enter seconds number", LEDS);
 				}
 			}else
@@ -193,32 +188,32 @@ static void Led_Action_Handler(Leds Led_no, const char* data, u16_t len){
 	}
 	else{
 		PRINT_MESG_UART("Invalid subtopic in led number: %d\n", Led_no+1);
-		mqtt_publish_cust("","Internal error", LEDS);
+		Mqtt_Publish_Cust("","Internal error", LEDS);
 		return;
 	}
 	Action=None;
 	if(COMPARE_STR(ON,data,len)) {
 		Action=On;
-		mqtt_publish_cust(mqtt_led_info[Led_no].LedTopic,"Led switched on" , LEDS);
+		Mqtt_Publish_Cust(mqtt_led_info[Led_no].LedTopic,"Led switched on" , LEDS);
 	}
 	else if(COMPARE_STR(OFF,data,len))
 	{
 		Action=Off;
-		mqtt_publish_cust(mqtt_led_info[Led_no].LedTopic,"Led switched off" , LEDS);
+		Mqtt_Publish_Cust(mqtt_led_info[Led_no].LedTopic,"Led switched off" , LEDS);
 	}
 	else if(COMPARE_STR(TOGGLE,data,len))
 	{
 		Action=Toggle;
-		mqtt_publish_cust(mqtt_led_info[Led_no].LedTopic,"Led Toggled" , LEDS);
+		Mqtt_Publish_Cust(mqtt_led_info[Led_no].LedTopic,"Led Toggled" , LEDS);
 	}
 	else if(COMPARE_STR(STATUS,data,len))
 	{
 		sprintf(msg, "Led %d status is %d",Led_no+1, HAL_GPIO_ReadPin(GPIO_led, Pin) );
-		mqtt_publish_cust(mqtt_led_info[Led_no].LedTopic,msg , LEDS);
+		Mqtt_Publish_Cust(mqtt_led_info[Led_no].LedTopic,msg , LEDS);
 	}
 	else
 	{
-		mqtt_publish_cust(mqtt_led_info[Led_no].LedTopic,"Invalid action" , LEDS);
+		Mqtt_Publish_Cust(mqtt_led_info[Led_no].LedTopic,"Invalid action" , LEDS);
 		PRINT_MESG_UART("Invalid action in LEDs \n");
 	}
 	if (Action != None){
@@ -234,7 +229,7 @@ static void Hw_Led_Action(GPIO_TypeDef* GPIO_led, uint16_t Pin, Led_Action Actio
 		HAL_GPIO_WritePin(GPIO_led, Pin , Action);
 	}else {
 		//error
-		mqtt_publish_cust("","Internal error" , LEDS);
+		Mqtt_Publish_Cust("","Internal error" , LEDS);
 	}
 }
 
@@ -251,7 +246,7 @@ static void Leds_Get_GPIO_and_Pin(Leds Led_no,GPIO_TypeDef** GPIO_led,uint16_t *
 		*Pin = LD3_Pin;
 	}else  {
 		PRINT_MESG_UART("Failed to set pointer \n");
-		mqtt_publish_cust("","Internal error", LEDS);
+		Mqtt_Publish_Cust("","Internal error", LEDS);
 	}
 }
 

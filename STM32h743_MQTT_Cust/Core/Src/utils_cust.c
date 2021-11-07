@@ -4,9 +4,7 @@
  *  Created on: Oct 27, 2021
  *      Author: Olaf
  */
-#include <stdlib.h>
-#include <string.h>
-#include "main.h"
+#include "MQTT_main.h"
 #include "utils_cust.h"
 
 void concatenate(char* dest,const char *a, const char *b, const char *c) {

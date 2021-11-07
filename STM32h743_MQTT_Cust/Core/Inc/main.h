@@ -32,13 +32,12 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#define TRUE 	0u
-#define FALSE 	1u
+
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
-extern TIM_HandleTypeDef htim3;
+
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/

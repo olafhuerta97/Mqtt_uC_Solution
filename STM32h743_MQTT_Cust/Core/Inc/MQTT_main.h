@@ -10,9 +10,13 @@
 #include <string.h>
 #include <stdarg.h>
 #include <stdio.h>
-#include "main.h"
+#include "lwip/arch.h"
 #include "config.h"
+#include "utils_cust.h"
+#include "main.h"
 
+
+/*This enum should be global so all modules can now their enum*/
 typedef enum
 {
   INFO    = 0,
@@ -22,6 +26,9 @@ typedef enum
   HEARTBEAT,
   NUMBER_OF_TOPICS
 } Mqtt_topics;
+
+#define TRUE 	0u
+#define FALSE 	1u
 
 #define OUTPUT     				"/Output"
 #define INPUT     				"/Input"
@@ -37,20 +44,12 @@ typedef enum
 #define LEDS_TIMER 	     	    TIM4
 #define FREE_TIMER_2 		    TIM5
 
-typedef struct {
-	uint8_t Topic_valid;
-	u8_t 	Qos;
-	void*   Subtopics;
-	 char 	Output_topic[MAX_LENGTH_TOPIC];
-	 char	    Input_topic[MAX_LENGTH_TOPIC];
-	void   (*(*Subtopics_handler)(const char* ));
-	void   (*Topic_Handler)(const char* ,uint16_t, void*);
-}topics_info_type;
+extern TIM_HandleTypeDef htim3;
 
 void Mqtt_Do_Connect(void);
-void MQTT_Cust_HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin);
-void MQTT_PeriodElapsedTim(TIM_HandleTypeDef *htim);
+void Mqtt_Ext_Int_ISR_Handler(u16_t GPIO_Pin);
+void Mqtt_Timer_ISR_Handler(TIM_HandleTypeDef *htim);
 
-void mqtt_publish_cust(const char *subtopic, const char *pub_payload,Mqtt_topics sender);
+void Mqtt_Publish_Cust(const char *subtopic, const char *pub_payload,Mqtt_topics sender);
 
 #endif /* INC_MQTT_MAIN_H_ */
