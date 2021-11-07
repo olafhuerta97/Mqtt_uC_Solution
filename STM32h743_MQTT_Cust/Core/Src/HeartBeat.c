@@ -4,7 +4,7 @@
  *  Created on: Oct 31, 2021
  *      Author: Olaf
  */
-#include "mqtt_cust.h"
+#include "MQTT_main.h"
 #include "HeartBeat.h"
 #include "utils_cust.h"
 
@@ -19,18 +19,20 @@ typedef enum{
 typedef struct {
 	HB_Action action_pending;
 	uint8_t Status;  //ON or OFF
-	uint16_t time;   // Time in ms Min 0 Max 32700
+	uint16_t time;   // Time in seconds
 }HB_info_type;
 
-static HB_info_type HB_info = {FALSE,TRUE,5000};
+static HB_info_type HB_info = {FALSE,TRUE,5};
 
 void HeartBeatTimerHandler(TIM_HandleTypeDef *htim){
 	char msg[50];
-	if (HB_info.Status == TRUE)
+	static uint32_t seconds = 0;
+	if (HB_info.Status == TRUE &&  0 == seconds%HB_info.time)
 	{
-		sprintf(msg, "HeartBeat every %d ms", HB_info.time);
+		sprintf(msg, "HeartBeat every %ds", HB_info.time);
 		mqtt_publish_cust("",msg,HEARTBEAT);
 	}
+	seconds++;
 
 }
 
@@ -45,10 +47,7 @@ void HeartBeat_TopicHandler(const char * data, u16_t len , void* subtopics_void)
 	else if (HB_info_incoming->action_pending == Time){
 		atoi_succeed = Atoi_Cust((char*)data, len, &new_time);
 		if (atoi_succeed == TRUE){
-			if (new_time >= 500 && new_time <= 30000){
-
-				__HAL_TIM_SET_AUTORELOAD(&htim3,new_time*2);
-				__HAL_TIM_SET_COUNTER(&htim3,0);
+			if (new_time >= 1 && new_time <= 3600){ //max interval 3600 seconds (1 hour)
 				HB_info_incoming->time = new_time;
 				mqtt_publish_cust("","Set Heartbeat time", HEARTBEAT);
 			}
@@ -88,7 +87,9 @@ void* HeartBeat_SubTopicHandler(const char *subtopic){
 	{
 		HB_info.action_pending = Time;
 		PRINT_MESG_UART("Time change detected%d\n");
-	}else if(*subtopic == 0){
+	}
+	else if(*subtopic == 0)
+	{
 		HB_info.action_pending = Status;
 	}
 	else

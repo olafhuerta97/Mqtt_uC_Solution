@@ -9,8 +9,8 @@
 #include <stdio.h>
 #include "SW_ID.h"
 #include "config.h"
-#include "Mqtt_cust.h"
-#define  SW_VERSION 								"SW ID 0.0.1"
+#include "MQTT_main.h"
+#define  SW_VERSION 								"SW ID 0.1.0"
 #define  GET_ID          						     "GET"
 
 static id_subtopics Id_Topic_Info;

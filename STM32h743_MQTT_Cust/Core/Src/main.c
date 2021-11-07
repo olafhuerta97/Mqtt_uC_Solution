@@ -40,7 +40,7 @@ extern struct netif gnetif;
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-#include "mqtt_cust.h"
+#include "MQTT_main.h"
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
@@ -118,7 +118,7 @@ int main(void)
   MX_TIM4_Init();
   MX_TIM5_Init();
   /* USER CODE BEGIN 2 */
-  mqtt_do_connect();
+  Mqtt_Do_Connect();
   HAL_Delay(1000);
   HAL_TIM_Base_Start_IT(&htim2);
   HAL_TIM_Base_Start_IT(&htim3);

@@ -5,8 +5,8 @@
  *      Author: Olaf
  */
 
-#ifndef INC_MQTT_CUST_H_
-#define INC_MQTT_CUST_H_
+#ifndef INC_MQTT_MAIN_H_
+#define INC_MQTT_MAIN_H_
 #include <string.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -15,7 +15,8 @@
 
 typedef enum
 {
-  LEDS       = 0x00U,
+  INFO    = 0,
+  LEDS,
   ID,
   BUTTON,
   HEARTBEAT,
@@ -25,6 +26,7 @@ typedef enum
 #define OUTPUT     				"/Output"
 #define INPUT     				"/Input"
 #define SUSCRIBE_TOPIC   		"/#"
+#define INFO_TOPIC 				"/Info"
 #define LEDS_TOPIC 				"/Leds"
 #define ID_TOPIC 				"/Id"
 #define BUTTON_TOPIC 			"/Button"
@@ -45,10 +47,10 @@ typedef struct {
 	void   (*Topic_Handler)(const char* ,uint16_t, void*);
 }topics_info_type;
 
-void mqtt_do_connect(void);
+void Mqtt_Do_Connect(void);
 void MQTT_Cust_HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin);
 void MQTT_PeriodElapsedTim(TIM_HandleTypeDef *htim);
 
 void mqtt_publish_cust(const char *subtopic, const char *pub_payload,Mqtt_topics sender);
 
-#endif /* INC_MQTT_CUST_H_ */
+#endif /* INC_MQTT_MAIN_H_ */

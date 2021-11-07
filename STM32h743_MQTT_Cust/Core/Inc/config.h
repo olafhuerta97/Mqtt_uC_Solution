@@ -83,7 +83,7 @@
   #define CONFIG_CLIENT_ID_NAME         "H743" /* each client connected to the host has to use a unique ID */
   #define CONFIG_CLIENT_USER_NAME       "olaf" /* no user name */
   #define CONFIG_CLIENT_USER_PASSWORD   "olaf97" /* no password */
-  #define MAX_LENGTH_TOPIC              30        /* no password */
+  #define MAX_LENGTH_TOPIC              30
 #elif CONFIG_USE_BROKER_AZURE
   #define CONFIG_BROKER_HOST_NAME       "GrilloIOTHub.azure-devices.net" /* {iothubhostname} */
   #define CONFIG_CLIENT_ID_NAME         "Erich_Device" /* {deviceId} */
