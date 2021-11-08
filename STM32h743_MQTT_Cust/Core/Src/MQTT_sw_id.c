@@ -6,7 +6,7 @@
 */
 
 #include "MQTT_main.h"
-#include "SW_ID.h"
+#include "MQTT_sw_id.h"
 
 #define  SW_VERSION 								"SW ID 0.1.0"
 #define  GET_ID          						     "GET"
@@ -17,10 +17,10 @@ void* mqtt_id_get_subtopic(const char *subtopic){
 	if(*subtopic == 0)
 	{
 		Id_Topic_Info.Valid=TRUE;
-		Mqtt_Publish_Cust("","Wrong topic",ID);
 	}else
 	{
 		Id_Topic_Info.Valid=FALSE;
+		Mqtt_Publish_Cust("","Wrong topic",ID);
 	}
 	PRINT_MESG_UART("ID subtopic %d\n" , Id_Topic_Info.Valid);
 	return &Id_Topic_Info;

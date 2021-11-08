@@ -5,7 +5,7 @@
  *      Author: Olaf
  */
 #include "MQTT_main.h"
-#include "HeartBeat.h"
+#include "MQTT_heartbeat.h"
 
 #define TIMESUBTOPIC   "/Time"
 
@@ -21,18 +21,16 @@ typedef struct {
 	uint16_t time;   // Time in seconds
 }HB_info_type;
 
-static HB_info_type HB_info = {FALSE,TRUE,5};
+static HB_info_type HB_info = {FALSE,TRUE,10};
 
 void HeartBeatTimerHandler(TIM_HandleTypeDef *htim){
 	char msg[50];
 	static uint32_t seconds = 0;
-	if (HB_info.Status == TRUE &&  0 == seconds%HB_info.time)
+	if (HB_info.Status == TRUE &&  0 == ++seconds%HB_info.time)
 	{
 		sprintf(msg, "HeartBeat every %ds", HB_info.time);
 		Mqtt_Publish_Cust("",msg,HEARTBEAT);
 	}
-	seconds++;
-
 }
 
 void HeartBeat_TopicHandler(const char * data, u16_t len , void* subtopics_void){
@@ -82,7 +80,7 @@ void HeartBeat_TopicHandler(const char * data, u16_t len , void* subtopics_void)
 void* HeartBeat_SubTopicHandler(const char *subtopic){
 	PRINT_MESG_UART("HeartBeat topic detected %s\n", subtopic);
 
-	if(strncmp(subtopic, TIMESUBTOPIC,strlen(TIMESUBTOPIC)) == 0)
+	if(strcmp(subtopic, TIMESUBTOPIC) == 0)
 	{
 		HB_info.action_pending = Time;
 		PRINT_MESG_UART("Time change detected%d\n");

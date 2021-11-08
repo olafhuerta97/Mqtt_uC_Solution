@@ -8,7 +8,7 @@
 #ifndef INC_MQTT_LEDS_H_
 #define INC_MQTT_LEDS_H_
 
-#include "config.h"
+#include "MQTT_main.h"
 
 
 void* mqtt_leds_get_subtopic(const char *subtopic);

@@ -5,7 +5,7 @@
  *      Author: Olaf
  */
 #include "MQTT_main.h"
-#include "button.h"
+#include "MQTT_button.h"
 
 #define MSG_BUTTON     "Button Pressed"
 

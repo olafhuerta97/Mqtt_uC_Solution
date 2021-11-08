@@ -8,10 +8,10 @@
 #include "mqtt.h"
 #include "lwip/apps/mqtt_priv.h"
 #include "mqtt_opts.h"
-#include "mqtt_leds.h"
-#include "button.h"
-#include "SW_ID.h"
-#include "HeartBeat.h"
+#include "MQTT_leds.h"
+#include "MQTT_button.h"
+#include "MQTT_sw_id.h"
+#include "MQTT_heartbeat.h"
 #include "MQTT_main.h"
 
 /*
@@ -20,8 +20,23 @@
  * WHEN THIS WAS ORIGINALLY MADE ALLOCATING MEMORY IT WAS GETTING CORRUPTED.
  * */
 
+#define OUTPUT     				"/Output"
+#define INPUT     				"/Input"
+#define SUSCRIBE_TOPIC   		"/#"
+#define INFO_TOPIC 				"/Info"
+#define LEDS_TOPIC 				"/Leds"
+#define ID_TOPIC 				"/Id"
+#define BUTTON_TOPIC 			"/Button"
+#define HB_TOPIC 			    "/HeartBeat"
+
+#define FREE_TIMER_1			TIM2
+#define HB_TIMER 			    TIM3
+#define LEDS_TIMER 	     	    TIM4
+#define FREE_TIMER_2 		    TIM5
+
+
 /*FileStructures*/
-typedef struct {
+typedef struct mqtt_topics_info_s{
 	u8_t    Topic_valid;
 	u8_t 	Qos;
 	void*   Subtopics;
@@ -92,18 +107,17 @@ void Mqtt_Timer_ISR_Handler(TIM_HandleTypeDef *htim)
 /*Function to publish messages from subtopics*/
 void Mqtt_Publish_Cust(const char *subtopic, const char *pub_payload,Mqtt_topics sender) {
 	err_t err;
+	u8_t retain = 0u;
 	char topic[MAX_LENGTH_TOPIC];
 	size_t topic_len = strlen(mqtt_topics_info[sender].Output_topic);
 	size_t subtopic_len = strlen(subtopic);
+	u8_t qos = mqtt_topics_info[sender].Qos; /* 0 1 or 2, see MQTT specification */
 	/*Calculate topic publish size and if most return*/
 	if((topic_len + subtopic_len)>MAX_LENGTH_TOPIC)
 	{
 		PRINT_MESG_UART("Trying to publish a topic with max length \n");
 		return;
 	}
-
-	u8_t qos = mqtt_topics_info[sender].Qos; /* 0 1 or 2, see MQTT specification */
-	u8_t retain = 0u;
 	memcpy(topic, mqtt_topics_info[sender].Output_topic, topic_len);
 	memcpy(topic + topic_len, subtopic, subtopic_len+1);
 	err = mqtt_publish(&mqtt_client, topic, pub_payload, strlen(pub_payload),
@@ -115,23 +129,16 @@ void Mqtt_Publish_Cust(const char *subtopic, const char *pub_payload,Mqtt_topics
 }
 
 
-void Mqtt_Do_Connect(void) {
-
+u8_t Mqtt_Do_Connect(void) {
+	char willmessage[50];
 	ip4_addr_t broker_ipaddr;
 	struct mqtt_connect_client_info_t ci;
 	err_t err;
+	sprintf(willmessage,"%s is offline", CONFIG_CLIENT_ID_NAME);
 
 	IP4_ADDR(&broker_ipaddr, configIP_MQTT_ADDR0, configIP_MQTT_ADDR1, configIP_MQTT_ADDR2,
 			configIP_MQTT_ADDR3);
 
-	/* Setup an empty client info structure */
-	memset(&ci, 0, sizeof(ci));
-
-	/* Minimal amount of information required is client identifier, so set it here */
-	ci.client_id = CONFIG_CLIENT_ID_NAME;
-	ci.client_user = CONFIG_CLIENT_USER_NAME;
-	ci.client_pass = CONFIG_CLIENT_USER_PASSWORD;
-	ci.keep_alive = 60; /* timeout */
 
 	/* Initiate client and connect to server, if this fails immediately an error code is returned
    otherwise Mqtt_Connection_CB will be called with connection result after attempting
@@ -142,6 +149,19 @@ void Mqtt_Do_Connect(void) {
 		Mqtt_Init_All_Topics(mqtt_topics_info);
 		mqtt_topics_initializated_flag = TRUE;
 	}
+
+	/* Setup an empty client info structure */
+	memset(&ci, 0, sizeof(ci));
+	/* Minimal amount of information required is client identifier, so set it here */
+	ci.client_id = CONFIG_CLIENT_ID_NAME;
+	ci.client_user = CONFIG_CLIENT_USER_NAME;
+	ci.client_pass = CONFIG_CLIENT_USER_PASSWORD;
+	ci.keep_alive = 30u; /* keep alive functionality 30 seconds since module is not sleeping*/
+	ci.will_msg = willmessage;
+	ci.will_qos=0u;
+	ci.will_retain = 1u;
+	ci.will_topic = mqtt_topics_info[INFO].Output_topic;
+
 	PRINT_MESG_UART("Trying to connect:\n");
 	err = mqtt_client_connect(&mqtt_client, &broker_ipaddr, MQTT_PORT, Mqtt_Connection_CB, (mqtt_topics_info_t*)mqtt_topics_info, &ci);
 	/* Just print the result code if something goes wrong */
@@ -149,6 +169,7 @@ void Mqtt_Do_Connect(void) {
 	{
 		PRINT_MESG_UART("mqtt_connect error: %d\n", err);
 	}
+	return err;
 }
 
 static void Mqtt_Publish_Valid_Topics(mqtt_topics_info_t* device_topics_print)
@@ -247,7 +268,7 @@ static void Mqtt_Connection_CB(mqtt_client_t *client, void *arg, mqtt_connection
 	{
 		PRINT_MESG_UART("Mqtt_Connection_CB: Disconnected, reason: %d\n", status);
 		/* Its more nice to be connected, so try to reconnect */
-		Mqtt_Do_Connect();
+		(void)Mqtt_Do_Connect();
 	}
 }
 
@@ -266,7 +287,7 @@ static void Mqtt_Incoming_Publish_CB(void *arg, const char *topic, u32_t tot_len
 {
 	mqtt_topics_info_t* Incoming_publish = arg;
 	Mqtt_topics Topic_received;
-	PRINT_MESG_UART("Incoming publish at topic %s with total length %u\n", topic, (unsigned int)tot_len);
+	//PRINT_MESG_UART("Incoming publish at topic %s with total length %u\n", topic, (unsigned int)tot_len);
 	for (Topic_received = 0; Topic_received< NUMBER_OF_TOPICS; Topic_received++)
 	{
 		if(strncmp(topic,Incoming_publish[Topic_received].Input_topic ,strlen(Incoming_publish[Topic_received].Input_topic)) == 0)
@@ -297,8 +318,8 @@ static void Mqtt_Incoming_Data_CB(void *arg, const u8_t *data, u16_t len, u8_t f
 	Mqtt_topics Topic_received;
 	MEMCPY(msg,data,len);
 	msg[len]=0;
-	PRINT_MESG_UART("Incoming publish payload with length %d, flags %u\n", len, (unsigned int)flags);
-	PRINT_MESG_UART("Data: %s, \n\n", msg );
+	//PRINT_MESG_UART("Incoming publish payload with length %d, flags %u\n", len, (unsigned int)flags);
+	//PRINT_MESG_UART("Data: %s, \n\n", msg );
 
 	/* Last fragment of payload received (or whole part if payload fits receive buffer
 	See MQTT_VAR_HEADER_BUFFER_LEN) */

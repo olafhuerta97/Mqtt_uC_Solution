@@ -5,7 +5,7 @@
  *      Author: Olaf
  */
 #include "MQTT_main.h"
-#include "utils_cust.h"
+#include "MQTT_utils_cust.h"
 
 void concatenate(char* dest,const char *a, const char *b, const char *c) {
     size_t alen = strlen(a);
