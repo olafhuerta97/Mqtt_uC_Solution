@@ -115,12 +115,13 @@ int main(void)
   MX_TIM4_Init();
   MX_TIM5_Init();
   /* USER CODE BEGIN 2 */
-  HAL_Delay(500);
+  HAL_Delay(300);
   HAL_TIM_Base_Start_IT(&htim2);
   HAL_TIM_Base_Start_IT(&htim3);
   HAL_TIM_Base_Start_IT(&htim4);
   HAL_TIM_Base_Start_IT(&htim5);
   Mqtt_Do_Connect();
+
   /* USER CODE END 2 */
 
   /* Infinite loop */

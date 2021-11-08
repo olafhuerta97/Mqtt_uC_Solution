@@ -19,7 +19,7 @@
  *
  * WHEN THIS WAS ORIGINALLY MADE ALLOCATING MEMORY IT WAS GETTING CORRUPTED.
  * */
-
+#define WELCOMEMESSAGE          " online...  \n Available topics are: \n"
 #define OUTPUT     				"/Output"
 #define INPUT     				"/Input"
 #define SUSCRIBE_TOPIC   		"/#"
@@ -129,11 +129,14 @@ void Mqtt_Publish_Cust(const char *subtopic, const char *pub_payload,Mqtt_Topics
 }
 
 
-u8_t Mqtt_Do_Connect(void) {
+void Mqtt_Do_Connect(void) {
 	char willmessage[50];
 	ip4_addr_t broker_ipaddr;
 	struct mqtt_connect_client_info_t ci;
 	err_t err;
+
+
+
 	sprintf(willmessage,"%s is offline", CONFIG_CLIENT_ID_NAME);
 
 	IP4_ADDR(&broker_ipaddr, configIP_MQTT_ADDR0, configIP_MQTT_ADDR1, configIP_MQTT_ADDR2,
@@ -169,26 +172,34 @@ u8_t Mqtt_Do_Connect(void) {
 	{
 		PRINT_MESG_UART("mqtt_connect error: %d\n", err);
 	}
-	return err;
+
 }
+
+
 
 static void Mqtt_Publish_Valid_Topics(mqtt_topics_info_t* device_topics_print)
 {
 	char Topicinfomsg[MQTT_VAR_HEADER_BUFFER_LEN];
-	u8_t Topic_Counter= 0;
-	Mqtt_Topics_t Topics_available;
+	u8_t message_char_counter= 0;
+	Mqtt_Topics_t topics_available;
 	err_t err;
 	u8_t qos =0u; /* 0 1 or 2, see MQTT specification */
 	u8_t retain = 1u; /**This info should be on broker*/
 
 	/*Print valid topics*/
-	sprintf(&Topicinfomsg[Topic_Counter],"H743 Available topics are: \n");
-	Topic_Counter= strlen(Topicinfomsg);
-	for (Topics_available = Info+1u; Topics_available < Number_Of_Topics; Topics_available++)
+	sprintf(&Topicinfomsg[message_char_counter],CONFIG_CLIENT_ID_NAME);
+	message_char_counter= strlen(Topicinfomsg);
+	sprintf(&Topicinfomsg[message_char_counter],WELCOMEMESSAGE);
+	for (topics_available = 0u; topics_available < Number_Of_Topics; topics_available++)
 	{
-		sprintf(&Topicinfomsg[Topic_Counter],"%s \n",device_topics_print[Topics_available].Input_topic);
-		Topic_Counter= strlen(Topicinfomsg);
+		message_char_counter= strlen(Topicinfomsg);
+		if(message_char_counter > MQTT_VAR_HEADER_BUFFER_LEN){
+			PRINT_MESG_UART("Array not big enough for printing all topics\n");
+			return;
+		}
+		sprintf(&Topicinfomsg[message_char_counter],"%s \n",device_topics_print[topics_available].Input_topic);
 	}
+
 	err = mqtt_publish(&mqtt_client,device_topics_print[Info].Output_topic , Topicinfomsg, strlen(Topicinfomsg),
 			qos, retain, Mqtt_Pub_Request_CB, NULL);
 	if(err != ERR_OK)
@@ -268,7 +279,7 @@ static void Mqtt_Connection_CB(mqtt_client_t *client, void *arg, mqtt_connection
 	{
 		PRINT_MESG_UART("Mqtt_Connection_CB: Disconnected, reason: %d\n", status);
 		/* Its more nice to be connected, so try to reconnect */
-		(void)Mqtt_Do_Connect();
+		Mqtt_Do_Connect();
 	}
 }
 
