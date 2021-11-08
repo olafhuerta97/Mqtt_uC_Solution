@@ -185,7 +185,7 @@ static void Mqtt_Publish_Valid_Topics(mqtt_topics_info_t* device_topics_print)
 	err_t err;
 	u8_t qos =0u; /* 0 1 or 2, see MQTT specification */
 	u8_t retain = 1u; /**This info should be on broker*/
-
+/*TODO Separate welcome message and valid topics in 2 publish add parameter, "is welcome message flag"**/
 	/*Print valid topics*/
 	sprintf(&Topicinfomsg[message_char_counter],CONFIG_CLIENT_ID_NAME);
 	message_char_counter= strlen(Topicinfomsg);
