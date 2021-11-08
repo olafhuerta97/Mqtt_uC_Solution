@@ -16,15 +16,15 @@
 #include "MQTT_utils_cust.h"
 
 /*This enum should be global so all modules can now their enum*/
-typedef enum
+typedef enum Mqtt_Topics_Enum
 {
-  INFO    = 0,
-  LEDS,
-  ID,
-  BUTTON,
-  HEARTBEAT,
-  NUMBER_OF_TOPICS
-} Mqtt_topics;
+  Info    = 0,
+  Leds,
+  Id,
+  Button,
+  Heartbeat,
+  Number_Of_Topics
+} Mqtt_Topics_t;
 
 #define TRUE 	0u
 #define FALSE 	1u
@@ -34,6 +34,6 @@ u8_t Mqtt_Do_Connect(void);
 void Mqtt_Ext_Int_ISR_Handler(u16_t GPIO_Pin);
 void Mqtt_Timer_ISR_Handler(TIM_HandleTypeDef *htim);
 
-void Mqtt_Publish_Cust(const char *subtopic, const char *pub_payload,Mqtt_topics sender);
+void Mqtt_Publish_Cust(const char *subtopic, const char *pub_payload,Mqtt_Topics_t sender);
 
 #endif /* INC_MQTT_MAIN_H_ */

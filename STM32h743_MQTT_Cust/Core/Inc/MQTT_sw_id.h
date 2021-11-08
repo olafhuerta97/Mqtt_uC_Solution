@@ -12,8 +12,8 @@ typedef struct {
 	uint8_t Valid;
 }id_subtopics;
 
-void* mqtt_id_get_subtopic(const char *subtopic);
-void mqtt_id_handler(const char * data, uint16_t len , void* subtopics_void);
+void* Id_Subtopics_Handler(const char *subtopic);
+void  Id_Data_Handler(const char * data, uint16_t len , void* subtopics_void);
 
 
 #endif /* INC_SW_ID_H_ */

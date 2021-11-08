@@ -7,7 +7,7 @@
 #include "MQTT_main.h"
 #include "MQTT_utils_cust.h"
 
-void concatenate(char* dest,const char *a, const char *b, const char *c) {
+void Utils_Concatenate(char* dest,const char *a, const char *b, const char *c) {
     size_t alen = strlen(a);
     size_t blen = strlen(b);
     size_t clen = strlen(c);
@@ -18,7 +18,7 @@ void concatenate(char* dest,const char *a, const char *b, const char *c) {
     }
 }
 
-unsigned char Atoi_Cust(char* str, unsigned short len, unsigned long *integer_result)
+u8_t Utils_Atoi_Cust(char* str, unsigned short len, unsigned long *integer_result)
 {
     /*Initialize result */
     int res = 0;
@@ -30,7 +30,7 @@ unsigned char Atoi_Cust(char* str, unsigned short len, unsigned long *integer_re
      subtract the code from '0' to get numerical
      value and multiply res by 10 to shuffle
      digits left to update running total */
-    for (int i = 0; i< len; ++i)
+    for (u16_t i = 0; i< len; ++i)
     {
     	if (str[i] < '0' || str[i] > '9')
     	{

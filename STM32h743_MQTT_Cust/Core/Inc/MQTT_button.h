@@ -4,4 +4,4 @@
  *  Created on: Oct 27, 2021
  *      Author: Olaf
  */
-void button_handler_isr(void);
+void Button_ISR_Handler(void);

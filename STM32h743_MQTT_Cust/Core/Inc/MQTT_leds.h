@@ -10,9 +10,8 @@
 
 #include "MQTT_main.h"
 
-
-void* mqtt_leds_get_subtopic(const char *subtopic);
-void mqtt_leds_handler(const char * data, u16_t len , void* subtopics_void);
-void LedsTimerHandler(TIM_HandleTypeDef *htim);
+void* Leds_Subtopics_Handler(const char *subtopic);
+void  Leds_Data_Handler(const char * data, u16_t len , void* subtopics_void);
+void  Leds_Timer_Handler(TIM_HandleTypeDef *htim);
 
 #endif /* INC_MQTT_LEDS_H_ */

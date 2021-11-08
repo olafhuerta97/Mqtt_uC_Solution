@@ -13,20 +13,21 @@
 
 static id_subtopics Id_Topic_Info;
 
-void* mqtt_id_get_subtopic(const char *subtopic){
+void* Id_Subtopics_Handler(const char *subtopic){
 	if(*subtopic == 0)
 	{
 		Id_Topic_Info.Valid=TRUE;
-	}else
+	}
+	else
 	{
 		Id_Topic_Info.Valid=FALSE;
-		Mqtt_Publish_Cust("","Wrong topic",ID);
+		Mqtt_Publish_Cust("","Wrong topic",Id);
 	}
 	PRINT_MESG_UART("ID subtopic %d\n" , Id_Topic_Info.Valid);
 	return &Id_Topic_Info;
 }
 
-void mqtt_id_handler(const char * data, u16_t len , void* subtopics_void){
+void Id_Data_Handler(const char * data, u16_t len , void* subtopics_void){
 	id_subtopics* subtopics =(id_subtopics*)subtopics_void;
 	if(subtopics->Valid != TRUE)
 	{
@@ -36,12 +37,12 @@ void mqtt_id_handler(const char * data, u16_t len , void* subtopics_void){
 	else{
 		if(strncmp(data, GET_ID,strlen(GET_ID)) == 0 && len == strlen(GET_ID))
 		{
-			Mqtt_Publish_Cust("",SW_VERSION,ID);
+			Mqtt_Publish_Cust("",SW_VERSION,Id);
 		}
 		else
 		{
 			PRINT_MESG_UART("Invalid data in topic ID%\n");
-			Mqtt_Publish_Cust("","Wrong command",ID);
+			Mqtt_Publish_Cust("","Wrong command",Id);
 		}
 	}
 

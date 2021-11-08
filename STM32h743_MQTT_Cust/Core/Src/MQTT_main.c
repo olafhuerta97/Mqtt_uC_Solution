@@ -49,7 +49,7 @@ typedef struct mqtt_topics_info_s{
 /*Local Static Variables and Structures*/
 static char mqtt_device_suscription[MAX_LENGTH_TOPIC];
 static mqtt_client_t mqtt_client;
-static mqtt_topics_info_t mqtt_topics_info[NUMBER_OF_TOPICS];
+static mqtt_topics_info_t mqtt_topics_info[Number_Of_Topics];
 static u8_t mqtt_topics_initializated_flag = FALSE;
 
 /*Local Static Function Declarations*/
@@ -59,7 +59,7 @@ static void Mqtt_Publish_Valid_Topics(mqtt_topics_info_t* device_topics_print);
 
 /*Initialize Topics*/
 static void Mqtt_Init_All_Topics(mqtt_topics_info_t* device_topics_init);
-static void Mqtt_Intialize_Topic(mqtt_topics_info_t* device_topics_init, Mqtt_topics Topic_To_Initialize ,
+static void Mqtt_Intialize_Topic(mqtt_topics_info_t* device_topics_init, Mqtt_Topics_t Topic_To_Initialize ,
 		const char* Topic_Name,void* TopicHandler, void * SubtopicHandler,u8_t QoS );
 
 /*Callback for events*/
@@ -70,15 +70,15 @@ static void Mqtt_Incoming_Data_CB(void *arg, const u8_t *data, u16_t len, u8_t f
 static void Mqtt_Pub_Request_CB(void *arg, err_t result);
 
 /*Default handlers Declaration*/
-static void Mqtt_Default_Topic_Handler(const char * data, u16_t len , void* subtopics_void);
-static void* Mqtt_Default_SubTopic_Handler(const char *subtopic);
+static void* Mqtt_Default_SubTopics_Handler(const char *subtopic);
+static void Mqtt_Default_Data_Handler(const char * data, u16_t len , void* subtopics_void);
 
 /*Function call every time the button is pressed*/
 void Mqtt_Ext_Int_ISR_Handler(u16_t GPIO_Pin)
 {
 	if (GPIO_Pin == Button_Pin_Pin)
 	{
-		button_handler_isr();
+		Button_ISR_Handler();
 	}
 }
 
@@ -87,10 +87,10 @@ void Mqtt_Timer_ISR_Handler(TIM_HandleTypeDef *htim)
 {
 	if(htim->Instance == LEDS_TIMER )
 	{
-		LedsTimerHandler(htim);
+		Leds_Timer_Handler(htim);
 	}else if(htim->Instance == HB_TIMER )
 	{
-		HeartBeatTimerHandler(htim);
+		Hb_Timer_Handler(htim);
 	}else if(htim->Instance == FREE_TIMER_1 )
 	{
 
@@ -105,7 +105,7 @@ void Mqtt_Timer_ISR_Handler(TIM_HandleTypeDef *htim)
 }
 
 /*Function to publish messages from subtopics*/
-void Mqtt_Publish_Cust(const char *subtopic, const char *pub_payload,Mqtt_topics sender) {
+void Mqtt_Publish_Cust(const char *subtopic, const char *pub_payload,Mqtt_Topics_t sender) {
 	err_t err;
 	u8_t retain = 0u;
 	char topic[MAX_LENGTH_TOPIC];
@@ -121,7 +121,7 @@ void Mqtt_Publish_Cust(const char *subtopic, const char *pub_payload,Mqtt_topics
 	memcpy(topic, mqtt_topics_info[sender].Output_topic, topic_len);
 	memcpy(topic + topic_len, subtopic, subtopic_len+1);
 	err = mqtt_publish(&mqtt_client, topic, pub_payload, strlen(pub_payload),
-			qos, retain, Mqtt_Pub_Request_CB, (Mqtt_topics*)&sender);
+			qos, retain, Mqtt_Pub_Request_CB, (Mqtt_Topics_t*)&sender);
 	if(err != ERR_OK)
 	{
 		PRINT_MESG_UART("Publish err: %d\n", err);
@@ -160,7 +160,7 @@ u8_t Mqtt_Do_Connect(void) {
 	ci.will_msg = willmessage;
 	ci.will_qos=0u;
 	ci.will_retain = 1u;
-	ci.will_topic = mqtt_topics_info[INFO].Output_topic;
+	ci.will_topic = mqtt_topics_info[Info].Output_topic;
 
 	PRINT_MESG_UART("Trying to connect:\n");
 	err = mqtt_client_connect(&mqtt_client, &broker_ipaddr, MQTT_PORT, Mqtt_Connection_CB, (mqtt_topics_info_t*)mqtt_topics_info, &ci);
@@ -174,9 +174,9 @@ u8_t Mqtt_Do_Connect(void) {
 
 static void Mqtt_Publish_Valid_Topics(mqtt_topics_info_t* device_topics_print)
 {
-	char Topicinfomsg[MAX_LENGTH_TOPIC*(NUMBER_OF_TOPICS-1)+strlen("H743 Available topics are: \n")];
+	char Topicinfomsg[MQTT_VAR_HEADER_BUFFER_LEN];
 	u8_t Topic_Counter= 0;
-	Mqtt_topics Topics_available;
+	Mqtt_Topics_t Topics_available;
 	err_t err;
 	u8_t qos =0u; /* 0 1 or 2, see MQTT specification */
 	u8_t retain = 1u; /**This info should be on broker*/
@@ -184,12 +184,12 @@ static void Mqtt_Publish_Valid_Topics(mqtt_topics_info_t* device_topics_print)
 	/*Print valid topics*/
 	sprintf(&Topicinfomsg[Topic_Counter],"H743 Available topics are: \n");
 	Topic_Counter= strlen(Topicinfomsg);
-	for (Topics_available = INFO+1u; Topics_available < NUMBER_OF_TOPICS; Topics_available++)
+	for (Topics_available = Info+1u; Topics_available < Number_Of_Topics; Topics_available++)
 	{
 		sprintf(&Topicinfomsg[Topic_Counter],"%s \n",device_topics_print[Topics_available].Input_topic);
 		Topic_Counter= strlen(Topicinfomsg);
 	}
-	err = mqtt_publish(&mqtt_client,device_topics_print[INFO].Output_topic , Topicinfomsg, strlen(Topicinfomsg),
+	err = mqtt_publish(&mqtt_client,device_topics_print[Info].Output_topic , Topicinfomsg, strlen(Topicinfomsg),
 			qos, retain, Mqtt_Pub_Request_CB, NULL);
 	if(err != ERR_OK)
 	{
@@ -199,12 +199,12 @@ static void Mqtt_Publish_Valid_Topics(mqtt_topics_info_t* device_topics_print)
 
 static void Mqtt_Init_All_Topics(mqtt_topics_info_t* device_topics_init)
 {
-	concatenate(mqtt_device_suscription,CONFIG_CLIENT_ID_NAME,INPUT,SUSCRIBE_TOPIC);
-	Mqtt_Intialize_Topic(device_topics_init, INFO ,INFO_TOPIC,NULL, NULL,0);
-	Mqtt_Intialize_Topic(device_topics_init, LEDS ,LEDS_TOPIC,mqtt_leds_handler, mqtt_leds_get_subtopic,1);
-	Mqtt_Intialize_Topic(device_topics_init, ID ,ID_TOPIC,mqtt_id_handler, mqtt_id_get_subtopic,2);
-	Mqtt_Intialize_Topic(device_topics_init, HEARTBEAT ,HB_TOPIC,HeartBeat_TopicHandler, HeartBeat_SubTopicHandler,0);
-	Mqtt_Intialize_Topic(device_topics_init, BUTTON ,BUTTON_TOPIC,NULL, NULL,0);
+	Utils_Concatenate(mqtt_device_suscription,CONFIG_CLIENT_ID_NAME,INPUT,SUSCRIBE_TOPIC);
+	Mqtt_Intialize_Topic(device_topics_init, Info ,INFO_TOPIC,NULL, NULL,0);
+	Mqtt_Intialize_Topic(device_topics_init, Leds ,LEDS_TOPIC,Leds_Data_Handler, Leds_Subtopics_Handler,1);
+	Mqtt_Intialize_Topic(device_topics_init, Id ,ID_TOPIC,Id_Data_Handler, Id_Subtopics_Handler,2);
+	Mqtt_Intialize_Topic(device_topics_init, Heartbeat ,HB_TOPIC,Hb_Data_Handler, Hb_Subtopics_Handler,0);
+	Mqtt_Intialize_Topic(device_topics_init, Button ,BUTTON_TOPIC,NULL, NULL,0);
 }
 
 /*Function to initialize topics/subtopics modules with minimum information
@@ -216,11 +216,11 @@ static void Mqtt_Init_All_Topics(mqtt_topics_info_t* device_topics_init)
  * initialize module QoS
  *
  * */
-static void Mqtt_Intialize_Topic(mqtt_topics_info_t* device_topics_init, Mqtt_topics Topic_To_Initialize ,
+static void Mqtt_Intialize_Topic(mqtt_topics_info_t* device_topics_init, Mqtt_Topics_t Topic_To_Initialize ,
 		const char* Topic_Name,void* TopicHandler, void * SubtopicHandler,u8_t QoS )
 {
-	concatenate(device_topics_init[Topic_To_Initialize].Input_topic,CONFIG_CLIENT_ID_NAME,INPUT,Topic_Name);
-	concatenate(device_topics_init[Topic_To_Initialize].Output_topic ,CONFIG_CLIENT_ID_NAME,OUTPUT,Topic_Name);
+	Utils_Concatenate(device_topics_init[Topic_To_Initialize].Input_topic,CONFIG_CLIENT_ID_NAME,INPUT,Topic_Name);
+	Utils_Concatenate(device_topics_init[Topic_To_Initialize].Output_topic ,CONFIG_CLIENT_ID_NAME,OUTPUT,Topic_Name);
 	device_topics_init[Topic_To_Initialize].Topic_valid = FALSE;
 
 	if (TopicHandler != NULL )/*Initialize Topic Handler*/
@@ -229,7 +229,7 @@ static void Mqtt_Intialize_Topic(mqtt_topics_info_t* device_topics_init, Mqtt_to
 	}
 	else
 	{
-		device_topics_init[Topic_To_Initialize].Topic_Handler = Mqtt_Default_Topic_Handler;
+		device_topics_init[Topic_To_Initialize].Topic_Handler = Mqtt_Default_Data_Handler;
 	}
 	if (SubtopicHandler != NULL )/*Initialize Subtopic Handler*/
 	{
@@ -237,7 +237,7 @@ static void Mqtt_Intialize_Topic(mqtt_topics_info_t* device_topics_init, Mqtt_to
 	}
 	else
 	{
-		device_topics_init[Topic_To_Initialize].Subtopics_handler = Mqtt_Default_SubTopic_Handler;
+		device_topics_init[Topic_To_Initialize].Subtopics_handler = Mqtt_Default_SubTopics_Handler;
 	}
 	if (QoS > 2)  /*Initialize QoS*/
 	{
@@ -286,9 +286,9 @@ static void Mqtt_Sub_Request_CB(void *arg, err_t result)
 static void Mqtt_Incoming_Publish_CB(void *arg, const char *topic, u32_t tot_len)
 {
 	mqtt_topics_info_t* Incoming_publish = arg;
-	Mqtt_topics Topic_received;
+	Mqtt_Topics_t Topic_received;
 	//PRINT_MESG_UART("Incoming publish at topic %s with total length %u\n", topic, (unsigned int)tot_len);
-	for (Topic_received = 0; Topic_received< NUMBER_OF_TOPICS; Topic_received++)
+	for (Topic_received = 0; Topic_received< Number_Of_Topics; Topic_received++)
 	{
 		if(strncmp(topic,Incoming_publish[Topic_received].Input_topic ,strlen(Incoming_publish[Topic_received].Input_topic)) == 0)
 		{
@@ -302,7 +302,7 @@ static void Mqtt_Incoming_Publish_CB(void *arg, const char *topic, u32_t tot_len
 	{
 		/* For all other topics */
 		PRINT_MESG_UART("Invalid Topic\n");
-		Mqtt_Publish_Cust("", "Wrong topic",INFO);
+		Mqtt_Publish_Cust("", "Wrong topic",Info);
 		Mqtt_Publish_Valid_Topics(mqtt_topics_info);
 	}
 }
@@ -315,7 +315,7 @@ static void Mqtt_Incoming_Publish_CB(void *arg, const char *topic, u32_t tot_len
 static void Mqtt_Incoming_Data_CB(void *arg, const u8_t *data, u16_t len, u8_t flags) {
 	u8_t msg[MQTT_VAR_HEADER_BUFFER_LEN+1u];
 	mqtt_topics_info_t* Incoming_data = arg;
-	Mqtt_topics Topic_received;
+	Mqtt_Topics_t Topic_received;
 	MEMCPY(msg,data,len);
 	msg[len]=0;
 	//PRINT_MESG_UART("Incoming publish payload with length %d, flags %u\n", len, (unsigned int)flags);
@@ -325,7 +325,7 @@ static void Mqtt_Incoming_Data_CB(void *arg, const u8_t *data, u16_t len, u8_t f
 	See MQTT_VAR_HEADER_BUFFER_LEN) */
 	if(flags & MQTT_DATA_FLAG_LAST)
 	{
-		for (Topic_received = 0; Topic_received< NUMBER_OF_TOPICS; Topic_received++)
+		for (Topic_received = 0; Topic_received< Number_Of_Topics; Topic_received++)
 		{
 			if(Incoming_data[Topic_received].Topic_valid == TRUE)
 			{
@@ -350,9 +350,7 @@ static void Mqtt_Incoming_Data_CB(void *arg, const u8_t *data, u16_t len, u8_t f
 		/* Handle fragmented payload, store in buffer, write to file or whatever */
 
 	}
-
 }
-
 
 /* Called when publish is complete either with success or failure */
 static void Mqtt_Pub_Request_CB(void *arg, err_t result)
@@ -363,17 +361,19 @@ static void Mqtt_Pub_Request_CB(void *arg, err_t result)
 	}
 }
 
-/*Default topic handler is no topic handler if declared on initialization*/
-static void Mqtt_Default_Topic_Handler(const char * data, u16_t len , void* subtopics_void){
+/*Default subtopic handler is no sub topic handler if declared on initialization*/
+static void* Mqtt_Default_SubTopics_Handler(const char *subtopic){
+	PRINT_MESG_UART("Default Sub_Topic Handler \n");
+	return NULL;
+}
+
+/*Default topic handler if no topic handler if declared on initialization*/
+static void Mqtt_Default_Data_Handler(const char * data, u16_t len , void* subtopics_void){
 	PRINT_MESG_UART("Default Topic Handler \n");
 }
 
 
-/*Default subtopic handler is no sub topic handler if declared on initialization*/
-static void* Mqtt_Default_SubTopic_Handler(const char *subtopic){
-	PRINT_MESG_UART("Default Sub_Topic Handler \n");
-	return NULL;
-}
+
 
 
 
