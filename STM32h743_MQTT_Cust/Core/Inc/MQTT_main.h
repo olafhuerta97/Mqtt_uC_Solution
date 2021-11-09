@@ -30,7 +30,7 @@ typedef enum Mqtt_Topics_Enum
 #define FALSE 	1u
 
 
-void Mqtt_Do_Connect(void);
+u8_t Mqtt_Do_Connect(void);
 void Mqtt_Ext_Int_ISR_Handler(u16_t GPIO_Pin);
 void Mqtt_Timer_ISR_Handler(TIM_HandleTypeDef *htim);
 

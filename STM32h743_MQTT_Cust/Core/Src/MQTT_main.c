@@ -19,7 +19,8 @@
  *
  * WHEN THIS WAS ORIGINALLY MADE ALLOCATING MEMORY IT WAS GETTING CORRUPTED.
  * */
-#define WELCOMEMESSAGE          " online...  \n Available topics are: \n"
+#define WELCOMEMESSAGE          " online... \n"
+#define AVAILABLETOPICS         "Available topics are: \n"
 #define OUTPUT     				"/Output"
 #define INPUT     				"/Input"
 #define SUSCRIBE_TOPIC   		"/#"
@@ -55,11 +56,11 @@ static u8_t mqtt_topics_initializated_flag = FALSE;
 /*Local Static Function Declarations*/
 
 /*Publish Available Topics on device*/
-static void Mqtt_Publish_Valid_Topics(mqtt_topics_info_t* device_topics_print);
+static void Mqtt_Publish_Valid_Topics(mqtt_topics_info_t* device_topics_print, u8_t is_welcome_msg_flag);
 
 /*Initialize Topics*/
 static void Mqtt_Init_All_Topics(mqtt_topics_info_t* device_topics_init);
-static void Mqtt_Intialize_Topic(mqtt_topics_info_t* device_topics_init, Mqtt_Topics_t Topic_To_Initialize ,
+static void Mqtt_Intialize_Topic(mqtt_topics_info_t* device_topics_init, Mqtt_Topics_t Topic_To_Initialize,
 		const char* Topic_Name,void* TopicHandler, void * SubtopicHandler,u8_t QoS );
 
 /*Callback for events*/
@@ -129,7 +130,7 @@ void Mqtt_Publish_Cust(const char *subtopic, const char *pub_payload,Mqtt_Topics
 }
 
 
-void Mqtt_Do_Connect(void) {
+u8_t Mqtt_Do_Connect(void) {
 	char willmessage[50];
 	ip4_addr_t broker_ipaddr;
 	struct mqtt_connect_client_info_t ci;
@@ -166,18 +167,19 @@ void Mqtt_Do_Connect(void) {
 	ci.will_topic = mqtt_topics_info[Info].Output_topic;
 
 	PRINT_MESG_UART("Trying to connect:\n");
-	err = mqtt_client_connect(&mqtt_client, &broker_ipaddr, MQTT_PORT, Mqtt_Connection_CB, (mqtt_topics_info_t*)mqtt_topics_info, &ci);
+	err = mqtt_client_connect(&mqtt_client, &broker_ipaddr, MQTT_PORT,
+			Mqtt_Connection_CB, (mqtt_topics_info_t*)mqtt_topics_info, &ci);
 	/* Just print the result code if something goes wrong */
 	if(err != ERR_OK)
 	{
 		PRINT_MESG_UART("mqtt_connect error: %d\n", err);
 	}
-
+	return err;
 }
 
 
 
-static void Mqtt_Publish_Valid_Topics(mqtt_topics_info_t* device_topics_print)
+static void Mqtt_Publish_Valid_Topics(mqtt_topics_info_t* device_topics_print, u8_t is_welcome_msg_flag)
 {
 	char Topicinfomsg[MQTT_VAR_HEADER_BUFFER_LEN];
 	u8_t message_char_counter= 0;
@@ -185,11 +187,15 @@ static void Mqtt_Publish_Valid_Topics(mqtt_topics_info_t* device_topics_print)
 	err_t err;
 	u8_t qos =0u; /* 0 1 or 2, see MQTT specification */
 	u8_t retain = 1u; /**This info should be on broker*/
-/*TODO Separate welcome message and valid topics in 2 publish add parameter, "is welcome message flag"**/
+
 	/*Print valid topics*/
-	sprintf(&Topicinfomsg[message_char_counter],CONFIG_CLIENT_ID_NAME);
-	message_char_counter= strlen(Topicinfomsg);
-	sprintf(&Topicinfomsg[message_char_counter],WELCOMEMESSAGE);
+	if (TRUE == is_welcome_msg_flag){
+		sprintf(&Topicinfomsg[message_char_counter],CONFIG_CLIENT_ID_NAME);
+		message_char_counter= strlen(Topicinfomsg);
+		sprintf(&Topicinfomsg[message_char_counter],WELCOMEMESSAGE);
+		message_char_counter= strlen(Topicinfomsg);
+	}
+	sprintf(&Topicinfomsg[message_char_counter],AVAILABLETOPICS);
 	for (topics_available = 0u; topics_available < Number_Of_Topics; topics_available++)
 	{
 		message_char_counter= strlen(Topicinfomsg);
@@ -227,11 +233,13 @@ static void Mqtt_Init_All_Topics(mqtt_topics_info_t* device_topics_init)
  * initialize module QoS
  *
  * */
-static void Mqtt_Intialize_Topic(mqtt_topics_info_t* device_topics_init, Mqtt_Topics_t Topic_To_Initialize ,
+static void Mqtt_Intialize_Topic(mqtt_topics_info_t* device_topics_init, Mqtt_Topics_t Topic_To_Initialize,
 		const char* Topic_Name,void* TopicHandler, void * SubtopicHandler,u8_t QoS )
 {
-	Utils_Concatenate(device_topics_init[Topic_To_Initialize].Input_topic,CONFIG_CLIENT_ID_NAME,INPUT,Topic_Name);
-	Utils_Concatenate(device_topics_init[Topic_To_Initialize].Output_topic ,CONFIG_CLIENT_ID_NAME,OUTPUT,Topic_Name);
+	Utils_Concatenate(device_topics_init[Topic_To_Initialize].Input_topic
+			,CONFIG_CLIENT_ID_NAME,INPUT,Topic_Name);
+	Utils_Concatenate(device_topics_init[Topic_To_Initialize].Output_topic
+			,CONFIG_CLIENT_ID_NAME,OUTPUT,Topic_Name);
 	device_topics_init[Topic_To_Initialize].Topic_valid = FALSE;
 
 	if (TopicHandler != NULL )/*Initialize Topic Handler*/
@@ -240,7 +248,8 @@ static void Mqtt_Intialize_Topic(mqtt_topics_info_t* device_topics_init, Mqtt_To
 	}
 	else
 	{
-		device_topics_init[Topic_To_Initialize].Topic_Handler = Mqtt_Default_Data_Handler;
+		device_topics_init[Topic_To_Initialize].Topic_Handler =
+				Mqtt_Default_Data_Handler;
 	}
 	if (SubtopicHandler != NULL )/*Initialize Subtopic Handler*/
 	{
@@ -248,7 +257,8 @@ static void Mqtt_Intialize_Topic(mqtt_topics_info_t* device_topics_init, Mqtt_To
 	}
 	else
 	{
-		device_topics_init[Topic_To_Initialize].Subtopics_handler = Mqtt_Default_SubTopics_Handler;
+		device_topics_init[Topic_To_Initialize].Subtopics_handler =
+				Mqtt_Default_SubTopics_Handler;
 	}
 	if (QoS > 2)  /*Initialize QoS*/
 	{
@@ -273,7 +283,7 @@ static void Mqtt_Connection_CB(mqtt_client_t *client, void *arg, mqtt_connection
 		{
 			PRINT_MESG_UART("mqtt_subscribe return: %d\n", err);
 		}
-		Mqtt_Publish_Valid_Topics(mqtt_topics_info);
+		Mqtt_Publish_Valid_Topics(mqtt_topics_info, TRUE);
 	}
 	else
 	{
@@ -298,23 +308,26 @@ static void Mqtt_Incoming_Publish_CB(void *arg, const char *topic, u32_t tot_len
 {
 	mqtt_topics_info_t* Incoming_publish = arg;
 	Mqtt_Topics_t Topic_received;
+	u8_t topic_valid_flag = FALSE;
 	//PRINT_MESG_UART("Incoming publish at topic %s with total length %u\n", topic, (unsigned int)tot_len);
-	for (Topic_received = 0; Topic_received< Number_Of_Topics; Topic_received++)
+	for (Topic_received = 0; Topic_received< Number_Of_Topics; ++Topic_received)
 	{
-		if(strncmp(topic,Incoming_publish[Topic_received].Input_topic ,strlen(Incoming_publish[Topic_received].Input_topic)) == 0)
+		if(strncmp(topic,Incoming_publish[Topic_received].Input_topic ,
+				strlen(Incoming_publish[Topic_received].Input_topic)) == 0)
 		{
 			Incoming_publish[Topic_received].Topic_valid = TRUE;
-			Incoming_publish[Topic_received].Subtopics =
-					Incoming_publish[Topic_received].Subtopics_handler(&(topic[strlen(Incoming_publish[Topic_received].Input_topic)]));
+			Incoming_publish[Topic_received].Subtopics = Incoming_publish[Topic_received].Subtopics_handler
+					(&(topic[strlen(Incoming_publish[Topic_received].Input_topic)]));
+			topic_valid_flag = TRUE;
 			break;
 		}
 	}
-	if (TRUE != Incoming_publish[Topic_received].Topic_valid)
+	if (FALSE == topic_valid_flag)
 	{
 		/* For all other topics */
 		PRINT_MESG_UART("Invalid Topic\n");
 		Mqtt_Publish_Cust("", "Wrong topic",Info);
-		Mqtt_Publish_Valid_Topics(mqtt_topics_info);
+		Mqtt_Publish_Valid_Topics(mqtt_topics_info, FALSE);
 	}
 }
 

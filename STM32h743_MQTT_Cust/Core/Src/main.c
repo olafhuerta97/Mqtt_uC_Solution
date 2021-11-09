@@ -78,7 +78,8 @@ static void MX_TIM5_Init(void);
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-
+	uint8_t err;
+	uint32_t tickstart;
   /* USER CODE END 1 */
 
   /* MPU Configuration--------------------------------------------------------*/
@@ -120,8 +121,18 @@ int main(void)
   HAL_TIM_Base_Start_IT(&htim3);
   HAL_TIM_Base_Start_IT(&htim4);
   HAL_TIM_Base_Start_IT(&htim5);
-  Mqtt_Do_Connect();
-
+  err = Mqtt_Do_Connect();
+  tickstart = HAL_GetTick();
+  while(err != ERR_OK)
+  {
+	  if((HAL_GetTick() - tickstart ) > 5000)
+	  {
+		  PRINT_MESG_UART("Could not connect. Trying to connect again...");
+		  err = Mqtt_Do_Connect();
+		  tickstart = HAL_GetTick();
+	  }
+	  MX_LWIP_Process();
+  }
   /* USER CODE END 2 */
 
   /* Infinite loop */
