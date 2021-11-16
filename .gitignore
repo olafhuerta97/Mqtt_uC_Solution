@@ -58,3 +58,5 @@ Release/
 .settings/
 *.launch
 *.xml
+
+.vscode/
