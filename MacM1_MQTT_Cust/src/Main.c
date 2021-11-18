@@ -41,7 +41,7 @@ static int run = 2;
 void handle_signal(int s)
 {
     //stop_timer(timer1);
-    finalize();
+    //finalize();
 	printf("Signal Handler signal:%d\n", s);
 	run--;
 }
@@ -71,8 +71,8 @@ int main(int argc, char *argv[])
 	int rc = 0;
 	signal(SIGINT, handle_signal);
 	signal(SIGTERM, handle_signal);
-	timer1 = start_timer(2000, time_handler1, NULL);
-	initialize();
+	//timer1 = start_timer(2000, time_handler1, NULL);
+	//initialize();
 
 	mosquitto_lib_init();
 
@@ -86,7 +86,7 @@ int main(int argc, char *argv[])
 
 	    rc = mosquitto_connect(mosq, mqtt_host, mqtt_port, 60);
 
-		mosquitto_subscribe(mosq, NULL, "F767/ld1/#", 0);
+		mosquitto_subscribe(mosq, NULL, "#", 0);
 
 		while(run){
 			rc = mosquitto_loop(mosq, -1, 1);
@@ -104,5 +104,3 @@ int main(int argc, char *argv[])
 	printf("Lib cleanup\n");
 	return rc;
 }
-
-

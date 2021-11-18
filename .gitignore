@@ -60,3 +60,4 @@ Release/
 *.xml
 
 .vscode/
+Output/
