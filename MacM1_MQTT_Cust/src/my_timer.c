@@ -41,8 +41,12 @@ struct kevent change;    /* event we want to monitor */
 struct kevent event;     /* event that was triggered */
 
 
-int initialize()
+size_t start_timer(unsigned int interval, time_handler handler, void * user_data)
 {
+    timer.callback  = handler;
+    timer.user_data = user_data;
+    timer.interval  = interval;
+    timer.fd = change;
     if(pthread_create(&g_thread_id, NULL, _timer_thread, NULL))
     {
         /*Thread creation failed*/
@@ -52,71 +56,35 @@ int initialize()
     return 1;
 }
 
-size_t start_timer(unsigned int interval, time_handler handler, void * user_data)
-{
-    
-   struct kevent change;    /* event we want to monitor */
-   struct kevent event;     /* event that was triggered */
-
-
-
-    timer.callback  = handler;
-    timer.user_data = user_data;
-    timer.interval  = interval;
-   // EV_SET(&change, 1, EVFILT_TIMER, EV_ADD | EV_ENABLE, 0, 5000, 0);
-
-    timer.fd = change;
-
-
-    return (size_t)1;
-}
-
-
 
 void finalize()
 {
+    EV_SET(&change, 1, EVFILT_TIMER, EV_DELETE, 0, timer.interval, 0);
     pthread_cancel(g_thread_id);
     pthread_join(g_thread_id, NULL);
 }
 
-
 void * _timer_thread(void * data)
 {
-    struct pollfd ufds[MAX_TIMER_COUNT] = {{0}};
-    int read_fds = 0, i, s;
-    uint64_t exp;
+    (void)(data);
     int kq, nev;
-    pid_t pid;
     kq = kqueue();
-            EV_SET(&change, 1, EVFILT_TIMER, EV_ADD | EV_ENABLE, 0, 5000, 0);
+    EV_SET(&change, 1, EVFILT_TIMER, EV_ADD | EV_ENABLE, 0, timer.interval, 0);
     while(1)
     {
         pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
         pthread_testcancel();
         pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
 
-        nev = kevent(kq, &change, 1, &event, 1, NULL);
-		printf("while kevent\n");
+    nev = kevent(kq, &change, 1, &event, 1, NULL);
 
-      if (nev < 0)
-         diep("kevent()");
-
-      else if (nev > 0) {
-         if (event.flags & EV_ERROR) {   /* report any error */
-            fprintf(stderr, "EV_ERROR: %s\n", strerror(event.data));
-            exit(EXIT_FAILURE);
-         }
-		 printf("while loop\n");
-
-         if ((pid = fork()) < 0)         /* fork error */
-            diep("fork()");
-
-         else if (pid == 0)              /* child */
-           timer.callback((size_t)0, timer.user_data);
+      if (nev < 0){
+            diep("kevent()");
       }
-/*compiles but works weird */
+      else if (nev > 0) {
+        timer.callback((size_t)0, timer.user_data);
+      }
     }
-
     return NULL;
 }
 
