@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-I -pthread -Wall -W -Wextra
+CFLAGS=-I -pthread -Wall 
 
 mqtt_m1_test: 
 	$(CC) mqttlib/*.c src/*.c -o output/mqtt_m1_test $(CFLAGS) 
@@ -8,3 +8,8 @@ mqtt_m1_test:
 
 clean:
 	rm -f output/mqtt_m1_test
+
+
+all: clean mqtt_m1_test
+
+.PHONY: all

@@ -22,8 +22,8 @@
 #define mqtt_host "192.168.0.160"
 #define mqtt_port 1883
 static struct mosquitto *mosq;
-static char TopicBBB[] = "BBB/greetings";
-static char PayloadBBB[] = "Hello from BBB _ 2";
+static char TopicBBB[] = "Mac/greetings";
+static char PayloadBBB[] = "Hello from Mac";
 size_t timer1;
 
 /*mosquitto_publish(struct mosquitto *mosq, int *mid, const char *topic,
@@ -31,24 +31,23 @@ size_t timer1;
 */
 void time_handler1(size_t timer_id, void * user_data)
 {
-    printf("timer expired.(%d)\n", timer_id);
-    printf("Publishing hi from BBB.(%d)\n", timer_id);
+    printf("Publishing hi from Mac_M1.\n" );
     mosquitto_publish(mosq,NULL,TopicBBB,sizeof(PayloadBBB),PayloadBBB,2,0);
 }
 
-static int run = 2;
+static int run = 1;
 
 void handle_signal(int s)
 {
-    //stop_timer(timer1);
-    //finalize();
+    finalize();
 	printf("Signal Handler signal:%d\n", s);
 	run--;
+	//mosquitto_destroy(mosq);
 }
 
 void connect_callback(struct mosquitto *mosq, void *obj, int result)
 {
-	printf("connect callback, rc=%d\n", result);
+	//printf("connect callback, rc=%d\n", result);
 }
 
 void message_callback(struct mosquitto *mosq, void *obj, const struct mosquitto_message *message)
@@ -65,14 +64,14 @@ void message_callback(struct mosquitto *mosq, void *obj, const struct mosquitto_
 
 int main(int argc, char *argv[])
 {
-
-	char clientid[] = "CLiente_BBB";
+	(void)(argc);
+	(void)(argv);
+	char clientid[] = "CLiente_Mac";
 
 	int rc = 0;
 	signal(SIGINT, handle_signal);
 	signal(SIGTERM, handle_signal);
-	//timer1 = start_timer(2000, time_handler1, NULL);
-	//initialize();
+	start_timer(5000, time_handler1, NULL);
 
 	mosquitto_lib_init();
 
@@ -89,18 +88,15 @@ int main(int argc, char *argv[])
 		mosquitto_subscribe(mosq, NULL, "#", 0);
 
 		while(run){
-			rc = mosquitto_loop(mosq, -1, 1);
+			rc = mosquitto_loop(mosq, -1, 2);
 			if(run && rc){
-				printf("connection error!\n");
-				sleep(10);
+				if (rc != 14){
+					printf("connection error! : %d \n" , rc);
+					sleep(5);
+				}
 				mosquitto_reconnect(mosq);
 			}
 		}
-		mosquitto_destroy(mosq);
-		printf("Destroided mosq instance\n");
 	}
-
-	mosquitto_lib_cleanup();
-	printf("Lib cleanup\n");
 	return rc;
 }
