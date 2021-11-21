@@ -309,7 +309,7 @@ static void Mqtt_Incoming_Publish_CB(void *arg, const char *topic, u32_t tot_len
 	mqtt_topics_info_t* Incoming_publish = arg;
 	Mqtt_Topics_t Topic_received;
 	u8_t topic_valid_flag = FALSE;
-	//PRINT_MESG_UART("Incoming publish at topic %s with total length %u\n", topic, (unsigned int)tot_len);
+	PRINT_MESG_UART("Incoming publish at topic %s with total length %u\n", topic, (unsigned int)tot_len);
 	for (Topic_received = 0; Topic_received< Number_Of_Topics; ++Topic_received)
 	{
 		if(strncmp(topic,Incoming_publish[Topic_received].Input_topic ,
@@ -327,7 +327,6 @@ static void Mqtt_Incoming_Publish_CB(void *arg, const char *topic, u32_t tot_len
 		/* For all other topics */
 		PRINT_MESG_UART("Invalid Topic\n");
 		Mqtt_Publish_Cust("", "Wrong topic",Info);
-		Mqtt_Publish_Valid_Topics(mqtt_topics_info, FALSE);
 	}
 }
 
@@ -342,7 +341,7 @@ static void Mqtt_Incoming_Data_CB(void *arg, const u8_t *data, u16_t len, u8_t f
 	Mqtt_Topics_t Topic_received;
 	MEMCPY(msg,data,len);
 	msg[len]=0;
-	//PRINT_MESG_UART("Incoming publish payload with length %d, flags %u\n", len, (unsigned int)flags);
+	PRINT_MESG_UART("Incoming publish payload with length %d, flags %u\n", len, (unsigned int)flags);
 	//PRINT_MESG_UART("Data: %s, \n\n", msg );
 
 	/* Last fragment of payload received (or whole part if payload fits receive buffer
@@ -354,17 +353,11 @@ static void Mqtt_Incoming_Data_CB(void *arg, const u8_t *data, u16_t len, u8_t f
 			if(Incoming_data[Topic_received].Topic_valid == TRUE)
 			{
 				Incoming_data[Topic_received].Topic_valid = FALSE;
-				if (Incoming_data[Topic_received].Subtopics != NULL)
-				{
-					// Call specific topic function handler
-					Incoming_data[Topic_received].Topic_Handler((char*)data,len, // Data and len
+
+				// Call specific topic function handler
+				Incoming_data[Topic_received].Topic_Handler((char*)data,len, // Data and len
 							Incoming_data[Topic_received].Subtopics); // Subtopic structure handler
 
-				}
-				else
-				{
-					//internal error
-				}
 				break;
 			}
 		}
@@ -394,6 +387,11 @@ static void* Mqtt_Default_SubTopics_Handler(const char *subtopic){
 /*Default topic handler if no topic handler if declared on initialization*/
 static void Mqtt_Default_Data_Handler(const char * data, u16_t len , void* subtopics_void){
 	PRINT_MESG_UART("Default Topic Handler \n");
+	if (strncmp(data, "RESET",strlen(data)) == 0 && len == strlen(data))
+	{
+		PRINT_MESG_UART("Resetting\n");
+		HAL_NVIC_SystemReset();
+	}
 }
 
 
