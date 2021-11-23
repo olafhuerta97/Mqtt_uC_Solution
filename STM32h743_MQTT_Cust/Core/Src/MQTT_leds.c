@@ -23,8 +23,6 @@ typedef enum Leds_enum
 	Number_Of_Leds
 } Leds_t;
 
-#define COMPARE_STR(DATA,POINTER_TO_DATA,LEN)     strncmp(POINTER_TO_DATA, DATA,strlen(DATA)) == 0 && LEN == strlen(DATA)
-
 typedef enum Leds_Commands_enum
 {
 	No_command        = 0x00,

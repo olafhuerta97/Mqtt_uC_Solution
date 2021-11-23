@@ -8,9 +8,7 @@
 #ifndef INC_SW_ID_H_
 #define INC_SW_ID_H_
 #include "main.h"
-typedef struct {
-	uint8_t Valid;
-}id_subtopics;
+
 
 void* Id_Subtopics_Handler(const char *subtopic);
 void  Id_Data_Handler(const char * data, uint16_t len , void* subtopics_void);

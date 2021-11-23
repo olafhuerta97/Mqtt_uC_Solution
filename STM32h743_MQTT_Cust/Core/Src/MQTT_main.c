@@ -29,6 +29,7 @@
 #define ID_TOPIC 				"/Id"
 #define BUTTON_TOPIC 			"/Button"
 #define HB_TOPIC 			    "/HeartBeat"
+#define MOREINFOMSG             "For more information please send ClientID/Input/Topic/Info with data GET"
 
 #define FREE_TIMER_1			TIM2
 #define HB_TIMER 			    TIM3
@@ -181,7 +182,7 @@ u8_t Mqtt_Do_Connect(void) {
 
 static void Mqtt_Publish_Valid_Topics(mqtt_topics_info_t* device_topics_print, u8_t is_welcome_msg_flag)
 {
-	char Topicinfomsg[MQTT_VAR_HEADER_BUFFER_LEN];
+	char Topicinfomsg[MQTT_OUTPUT_RINGBUF_SIZE];
 	u8_t message_char_counter= 0;
 	Mqtt_Topics_t topics_available;
 	err_t err;
@@ -199,12 +200,24 @@ static void Mqtt_Publish_Valid_Topics(mqtt_topics_info_t* device_topics_print, u
 	for (topics_available = 0u; topics_available < Number_Of_Topics; topics_available++)
 	{
 		message_char_counter= strlen(Topicinfomsg);
-		if(message_char_counter > MQTT_VAR_HEADER_BUFFER_LEN){
+		if((message_char_counter+strlen(device_topics_print[topics_available].Input_topic))
+				> MQTT_OUTPUT_RINGBUF_SIZE)
+		{
 			PRINT_MESG_UART("Array not big enough for printing all topics\n");
 			return;
 		}
 		sprintf(&Topicinfomsg[message_char_counter],"%s \n",device_topics_print[topics_available].Input_topic);
 	}
+	message_char_counter= strlen(Topicinfomsg);
+
+	if((message_char_counter+strlen(MOREINFOMSG))
+			> MQTT_OUTPUT_RINGBUF_SIZE)
+	{
+		PRINT_MESG_UART("Array not big enough for printing all topics\n");
+		return;
+	}
+
+	sprintf(&Topicinfomsg[message_char_counter],"%s",MOREINFOMSG);
 
 	err = mqtt_publish(&mqtt_client,device_topics_print[Info].Output_topic , Topicinfomsg, strlen(Topicinfomsg),
 			qos, retain, Mqtt_Pub_Request_CB, NULL);

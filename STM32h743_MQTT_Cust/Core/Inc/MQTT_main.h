@@ -15,6 +15,8 @@
 #include "MQTT_config.h"
 #include "MQTT_utils_cust.h"
 
+#define COMPARE_STR(DATA,POINTER_TO_DATA,LEN)     strncmp(POINTER_TO_DATA, DATA,strlen(DATA)) == 0 && LEN == strlen(DATA)
+
 /*This enum should be global so all modules can now their enum*/
 typedef enum Mqtt_Topics_Enum
 {
