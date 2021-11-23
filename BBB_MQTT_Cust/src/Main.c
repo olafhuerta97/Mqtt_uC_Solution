@@ -31,8 +31,8 @@ size_t timer1;
 */
 void time_handler1(size_t timer_id, void * user_data)
 {
-    printf("timer expired.(%d)\n", timer_id);
-    printf("Publishing hi from BBB.(%d)\n", timer_id);
+    //printf("timer expired.(%d)\n", timer_id);
+    //printf("Publishing hi from BBB.(%d)\n", timer_id);
     mosquitto_publish(mosq,NULL,TopicBBB,sizeof(PayloadBBB),PayloadBBB,2,0);
 }
 
