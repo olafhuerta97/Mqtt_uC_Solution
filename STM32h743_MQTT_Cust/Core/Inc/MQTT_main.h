@@ -14,7 +14,6 @@
 #include "main.h"
 #include "MQTT_config.h"
 #include "MQTT_utils_cust.h"
-#include "mqtt.h"
 
 #define COMPARE_STR(DATA,POINTER_TO_DATA,LEN)     strncmp(POINTER_TO_DATA, DATA,strlen(DATA)) == 0 && LEN == strlen(DATA)
 
@@ -29,15 +28,22 @@ typedef enum Mqtt_Topics_Enum
   Number_Of_Topics
 } Mqtt_Topics_t;
 
+
+typedef struct availableCommands_type {
+	uint8_t command_number;
+	char *command_name;
+	char **command_options;
+}commands_info_struct_t;
+
+
 #define TRUE 	0u
 #define FALSE 	1u
-
-#define AVAILABLETOPICS         "Available topics are: \n"
 
 u8_t Mqtt_Do_Connect(void);
 void Mqtt_Ext_Int_ISR_Handler(u16_t GPIO_Pin);
 void Mqtt_Timer_ISR_Handler(TIM_HandleTypeDef *htim);
 
 void Mqtt_Publish_Cust(const char *subtopic, const char *pub_payload,Mqtt_Topics_t sender);
+void Mqtt_Publish_Subtopic_Info(const commands_info_struct_t *topic_info,uint8_t number_of_commands,Mqtt_Topics_t sender);
 
 #endif /* INC_MQTT_MAIN_H_ */
