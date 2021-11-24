@@ -14,6 +14,7 @@
 #include "main.h"
 #include "MQTT_config.h"
 #include "MQTT_utils_cust.h"
+#include "mqtt.h"
 
 #define COMPARE_STR(DATA,POINTER_TO_DATA,LEN)     strncmp(POINTER_TO_DATA, DATA,strlen(DATA)) == 0 && LEN == strlen(DATA)
 
@@ -31,6 +32,7 @@ typedef enum Mqtt_Topics_Enum
 #define TRUE 	0u
 #define FALSE 	1u
 
+#define AVAILABLETOPICS         "Available topics are: \n"
 
 u8_t Mqtt_Do_Connect(void);
 void Mqtt_Ext_Int_ISR_Handler(u16_t GPIO_Pin);

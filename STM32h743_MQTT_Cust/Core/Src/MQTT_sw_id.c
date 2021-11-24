@@ -43,6 +43,8 @@ typedef struct id_subtopics_type {
 
 static id_subtopics_t id_subtopics;
 
+
+static void Id_Publish_Info_Topics(void);
 // COMPARE_STR(DATA,POINTER_TO_DATA,LEN)     strncmp(POINTER_TO_DATA, DATA,strlen(DATA)) == 0 && LEN == strlen(DATA)
 
 void* Id_Subtopics_Handler(const char *subtopic){
@@ -80,7 +82,7 @@ void Id_Data_Handler(const char * data, u16_t len , void* subtopics_void){
 		else if (COMPARE_STR(id_commands_struct[Info_Id].id_command_options[0],data,len)
 				&& subtopics->current_id_command == Info_Id)
 		{
-			Mqtt_Publish_Cust("","Available ID topics are No subtopic and Info ",Id);
+			Id_Publish_Info_Topics();
 		}
 		else
 		{
@@ -88,5 +90,30 @@ void Id_Data_Handler(const char * data, u16_t len , void* subtopics_void){
 			Mqtt_Publish_Cust("","Wrong command",Id);
 		}
 	}
+}
+
+static void Id_Publish_Info_Topics(void){
+	char id_info_msg[MQTT_OUTPUT_RINGBUF_SIZE];
+	u8_t message_char_counter= 0;
+	ID_Commands_t topics_available;
+
+
+	/*Print valid topics*/
+
+	sprintf(&id_info_msg[message_char_counter],AVAILABLETOPICS);
+	for (topics_available = 0u; topics_available < Id_Commands_Size; topics_available++)
+	{
+		message_char_counter= strlen(id_info_msg);
+		if((message_char_counter+strlen(id_commands_struct[topics_available].id_command_name))
+				> MQTT_OUTPUT_RINGBUF_SIZE)
+		{
+			PRINT_MESG_UART("Array not big enough for printing all topics\n");
+			return;
+		}
+		sprintf(&id_info_msg[message_char_counter],"%s \n",id_commands_struct[topics_available].id_command_name);
+	}
+
+
+	Mqtt_Publish_Cust("Info", id_info_msg , Id);
 
 }

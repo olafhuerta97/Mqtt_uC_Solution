@@ -5,7 +5,6 @@
  *      Author: Olaf
  */
 /*File Includes*/
-#include "mqtt.h"
 #include "lwip/apps/mqtt_priv.h"
 #include "mqtt_opts.h"
 #include "MQTT_leds.h"
@@ -20,7 +19,7 @@
  * WHEN THIS WAS ORIGINALLY MADE ALLOCATING MEMORY IT WAS GETTING CORRUPTED.
  * */
 #define WELCOMEMESSAGE          " Hi, Device online... \n"
-#define AVAILABLETOPICS         "Available topics are: \n"
+
 #define OUTPUT     				"/Output"
 #define INPUT     				"/Input"
 #define SUSCRIBE_TOPIC   		"/#"
