@@ -19,7 +19,7 @@
  *
  * WHEN THIS WAS ORIGINALLY MADE ALLOCATING MEMORY IT WAS GETTING CORRUPTED.
  * */
-#define WELCOMEMESSAGE          " Hi H767 online... \n"
+#define WELCOMEMESSAGE          " Hi, Device online... \n"
 #define AVAILABLETOPICS         "Available topics are: \n"
 #define OUTPUT     				"/Output"
 #define INPUT     				"/Input"
@@ -29,8 +29,8 @@
 #define ID_TOPIC 				"/Id"
 #define BUTTON_TOPIC 			"/Button"
 #define HB_TOPIC 			    "/HeartBeat"
-#define MOREINFOMSG             "For more information please send ClientID/Input/Topic/Info with data GET"
-
+#define MOREINFOMSG             "For more information please send"
+#define MOREINFOMSG2            "/Input/(desired_topic)/Info with data GET"
 #define FREE_TIMER_1			TIM2
 #define HB_TIMER 			    TIM3
 #define LEDS_TIMER 	     	    TIM4
@@ -210,14 +210,14 @@ static void Mqtt_Publish_Valid_Topics(mqtt_topics_info_t* device_topics_print, u
 	}
 	message_char_counter= strlen(Topicinfomsg);
 
-	if((message_char_counter+strlen(MOREINFOMSG))
+	if((message_char_counter+strlen(MOREINFOMSG)+ strlen(MOREINFOMSG2) + strlen(CONFIG_CLIENT_ID_NAME))
 			> MQTT_OUTPUT_RINGBUF_SIZE)
 	{
 		PRINT_MESG_UART("Array not big enough for printing all topics\n");
 		return;
 	}
 
-	sprintf(&Topicinfomsg[message_char_counter],"%s",MOREINFOMSG);
+	sprintf(&Topicinfomsg[message_char_counter],"%s %s %s",MOREINFOMSG, CONFIG_CLIENT_ID_NAME,MOREINFOMSG2);
 
 	err = mqtt_publish(&mqtt_client,device_topics_print[Info].Output_topic , Topicinfomsg, strlen(Topicinfomsg),
 			qos, retain, Mqtt_Pub_Request_CB, NULL);
