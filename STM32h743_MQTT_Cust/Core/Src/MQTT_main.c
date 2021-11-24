@@ -19,7 +19,7 @@
  *
  * WHEN THIS WAS ORIGINALLY MADE ALLOCATING MEMORY IT WAS GETTING CORRUPTED.
  * */
-#define WELCOMEMESSAGE          " online... \n"
+#define WELCOMEMESSAGE          " Hi H767 online... \n"
 #define AVAILABLETOPICS         "Available topics are: \n"
 #define OUTPUT     				"/Output"
 #define INPUT     				"/Input"
