@@ -178,14 +178,14 @@ u8_t Mqtt_Do_Connect(void) {
 	return err;
 }
 
-void Mqtt_Publish_Subtopic_Info(const commands_info_struct_t *topic_info,uint8_t number_of_commands,Mqtt_Topics_t sender){
+void Mqtt_Publish_Subtopic_Info(const commands_info_struct_t *topic_info,uint8_t number_of_commands,
+		Mqtt_Topics_t sender)
+{
 	char info_msg[MQTT_OUTPUT_RINGBUF_SIZE];
 	u8_t message_char_counter= 0;
 	uint8_t topics_available;
 
-
 	/*Print valid topics*/
-
 	sprintf(&info_msg[message_char_counter],AVAILABLETOPICS);
 	for (topics_available = 0u; topics_available < number_of_commands; topics_available++)
 	{
@@ -196,9 +196,18 @@ void Mqtt_Publish_Subtopic_Info(const commands_info_struct_t *topic_info,uint8_t
 			PRINT_MESG_UART("Array not big enough for printing all topics\n");
 			return;
 		}
-		sprintf(&info_msg[message_char_counter],"%s %s \n",mqtt_topics_info[sender].Output_topic,topic_info[topics_available].command_name);
-	}
+		sprintf(&info_msg[message_char_counter],"%s%s \nWith option(s)\n",
+				mqtt_topics_info[sender].Output_topic,topic_info[topics_available].command_name);
 
+		for (u8_t number_of_commands = 0; number_of_commands < topic_info[topics_available].number_commands;
+				number_of_commands++)
+		{
+			message_char_counter= strlen(info_msg);
+			sprintf(&info_msg[message_char_counter],"%s \n",
+							topic_info[topics_available].command_options[number_of_commands]);
+		}
+	}
+	PRINT_MESG_UART("%d\n",message_char_counter);
 
 	Mqtt_Publish_Cust("/Info", info_msg , sender);
 

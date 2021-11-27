@@ -33,6 +33,7 @@ typedef struct availableCommands_type {
 	uint8_t command_number;
 	char *command_name;
 	char **command_options;
+	uint8_t number_commands;
 }commands_info_struct_t;
 
 

@@ -19,13 +19,13 @@ typedef enum Leds_Commands_enum
 } ID_Commands_t;
 
 
-char const *Default_options[1] ={"GET"};
-char const *Info_options[1] =   {"GET"};
+static char const *Default_options[] ={"GET"};
+static char const *Info_options[] =   {"GET"};
 
 
 #define ID_COMMANDS_MASTER_ARRAY  			            				 \
-		{Default_id,	    "",	             (char**)Default_options },			\
-		{Info_Id,   	"/Info",	        (char**)Info_options     },			\
+		{Default_id,	     "", (char**)Default_options , sizeof(Default_options)/sizeof(char**) },\
+		{Info_Id   ,   	"/Info", (char**)Info_options    , sizeof(Info_options)/sizeof(char**) },\
 
 static const commands_info_struct_t id_commands_struct[Id_Commands_Size]={ID_COMMANDS_MASTER_ARRAY};
 
