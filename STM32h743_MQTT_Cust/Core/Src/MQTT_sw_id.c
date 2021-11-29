@@ -20,7 +20,7 @@ typedef enum Leds_Commands_enum
 
 
 static char const *Default_options[] ={"GET"};
-static char const *Info_options[] =   {"GET"};
+static char const *Info_options[] =   {"GET","(null)"};
 
 
 #define ID_COMMANDS_MASTER_ARRAY  			            				 \
@@ -72,8 +72,12 @@ void Id_Data_Handler(const char * data, u16_t len , void* subtopics_void){
 		{
 			Mqtt_Publish_Cust("",SW_VERSION,Id);
 		}
-		else if (COMPARE_STR(id_commands_struct[Info_Id].command_options[0],data,len)
-				&& subtopics->current_id_command == Info_Id)
+		else if
+		(
+				((COMPARE_STR(id_commands_struct[Info_Id].command_options[0],data,len))
+						||(COMPARE_STR("",data,len)))
+				&& subtopics->current_id_command == Info_Id
+		)
 		{
 			Mqtt_Publish_Subtopic_Info(id_commands_struct, Id_Commands_Size, Id);
 		}

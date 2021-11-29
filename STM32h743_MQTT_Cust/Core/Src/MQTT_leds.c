@@ -6,14 +6,7 @@
  */
 #include "MQTT_leds.h"
 
-#define INFORM 	"/Inform"
-#define TIME 	"/Time"
-
 #define LEDNUMBERSTRINGSIZE        6
-#define ON    	"ON"
-#define OFF   	"OFF"
-#define TOGGLE 	"TOGGLE"
-#define STATUS 	"STATUS"
 
 typedef enum Leds_enum
 {
@@ -25,19 +18,33 @@ typedef enum Leds_enum
 
 typedef enum Leds_Commands_enum
 {
-	No_command        = 0x00,
 	Action,
 	Inform,
-	Time
+	Time,
+	Info_leds,
+	Info_leds_2,
+	Number_of_Leds_Commands,
 } Leds_Commands_t;
 
 typedef enum Leds_Actions_enum
 {
-	Off      = 0x00U,
-	On       = 0x01U,
-	Toggle   = 0x02U,
+	On       ,
+	Off      ,
+	Toggle   ,
 	None
 } Led_Action_t;
+
+static char const *action_options[] ={"ON", "OFF", "TOGGLE", "STATUS"};
+static char const *inform_options[] =   {"ON", "OFF"};
+static char const *time_options[] =   {"(Number of seconds to set Inform Message)"};
+static char const *info_options[] =   {"GET", "(null)"};
+
+#define LEDS_COMMANDS_MASTER_ARRAY  			            				 \
+	{Action      , "/Ledx"       , (char**)action_options , sizeof(action_options)/sizeof(char**) },\
+	{Inform      , "/Ledx/Inform", (char**)inform_options , sizeof(inform_options)/sizeof(char**) },\
+	{Time        , "/Ledx/Time"  , (char**)time_options   , sizeof(time_options)  /sizeof(char**) },\
+	{Info_leds   , "/Ledx/Info"  , (char**)info_options   , sizeof(info_options)  /sizeof(char**) },\
+	{Info_leds_2 , "/Info"       , (char**)info_options   , sizeof(info_options)  /sizeof(char**) },\
 
 
 typedef struct leds_info_s{
@@ -49,19 +56,19 @@ typedef struct leds_info_s{
 }leds_info_struct_t;
 
 #define LED_MASTER_ARRAY  									   				 \
-		{"/Led1",	FALSE,	No_command , FALSE, 10u },			\
-		{"/Led2",	FALSE,	No_command , FALSE, 10u },			\
-		{"/Led3",	FALSE,	No_command , FALSE, 10u },			\
+		{"/Led1",	FALSE,	Number_of_Leds_Commands , FALSE, 10u },			\
+		{"/Led2",	FALSE,	Number_of_Leds_Commands , FALSE, 10u },			\
+		{"/Led3",	FALSE,	Number_of_Leds_Commands , FALSE, 10u },			\
 
 
 static leds_info_struct_t led_info_struct[Number_Of_Leds] = {LED_MASTER_ARRAY };
-
+static const commands_info_struct_t leds_commands_struct[Number_of_Leds_Commands]={LEDS_COMMANDS_MASTER_ARRAY};
 
 static void Leds_Hw_Action(GPIO_TypeDef* GPIO_led, u16_t Pin, Led_Action_t Action);
 static void Led_Action_Handler(Leds_t Led_no, const char* data, u16_t len);
 static void Leds_Get_GPIO_and_Pin(Leds_t Led_no,GPIO_TypeDef** GPIO_led,u16_t *Pin);
 
-
+static u8_t info_requested = FALSE;
 /*Timer runs every second*/
 void Leds_Timer_Handler(TIM_HandleTypeDef *htim){
 	static u32_t seconds = 0;
@@ -84,6 +91,11 @@ void* Leds_Subtopics_Handler(const char *subtopic){
 	const char* command_info;
 	Leds_t Led_index;
 	//PRINT_MESG_UART("Led topic detected %s\n", subtopic);
+	if(strcmp(subtopic, leds_commands_struct[Info_leds_2].command_name) == 0)
+	{
+		info_requested = TRUE;
+		return &led_info_struct;
+	}
 	for(Led_index = 0;Led_index<Number_Of_Leds;++Led_index){
 		if(strncmp(subtopic, led_info_struct[Led_index].LedTopic,LEDNUMBERSTRINGSIZE-1) == 0)
 		{
@@ -99,16 +111,20 @@ void* Leds_Subtopics_Handler(const char *subtopic){
 	}
 	command_info = &subtopic[LEDNUMBERSTRINGSIZE-1];
 
-	if(strcmp(command_info, INFORM) == 0 ) {
+	if(strcmp(command_info, &leds_commands_struct[Inform].command_name[strlen("/Ledx")]) == 0 ) {
 		led_info_struct[Led_index].command=Inform;
 	}
 	else if (*command_info == 0)
 	{
 		led_info_struct[Led_index].command=Action;
 	}
-	else if (strcmp(command_info, TIME) == 0 )
+	else if (strcmp(command_info, &leds_commands_struct[Action].command_name[strlen("/Ledx")]) == 0 )
 	{
 		led_info_struct[Led_index].command=Time;
+	}
+	else if (strcmp(command_info,&leds_commands_struct[Info_leds].command_name[strlen("/Ledx")]) == 0 )
+	{
+		led_info_struct[Led_index].command=Info_leds;
 	}
 	else
 	{
@@ -126,6 +142,17 @@ void Leds_Data_Handler(const char * data, u16_t len , void* subtopics_void){
 	Leds_t Led_index;
 	u32_t new_time;
 	u8_t atoi_succeed;
+	if (info_requested == TRUE)
+	{
+		info_requested = FALSE;
+		if((COMPARE_STR(leds_commands_struct[Info_leds_2].command_options[0],data,len))
+				|| (COMPARE_STR("",data,len)))
+		{
+			Mqtt_Publish_Cust("/Info","Where x is 1, 2 or 3", Leds);
+			Mqtt_Publish_Subtopic_Info(leds_commands_struct, Number_of_Leds_Commands, Leds);
+		}
+		return;
+	}
 	for(Led_index = 0;Led_index<Number_Of_Leds;++Led_index)
 	{
 		if(subtopics[Led_index].action_pending == TRUE)
@@ -138,10 +165,11 @@ void Leds_Data_Handler(const char * data, u16_t len , void* subtopics_void){
 			}
 			else if(subtopics[Led_index].command == Inform)
 			{
-				if(COMPARE_STR(ON,data,len))
+				if(COMPARE_STR(leds_commands_struct[Inform].command_options[On],data,len))
 				{
 					subtopics[Led_index].inform = TRUE;
-				}else if(COMPARE_STR(OFF,data,len))
+				}
+				else if(COMPARE_STR(leds_commands_struct[Inform].command_options[Off],data,len))
 				{
 					subtopics[Led_index].inform = FALSE;
 				}else {
@@ -160,7 +188,23 @@ void Leds_Data_Handler(const char * data, u16_t len , void* subtopics_void){
 					Mqtt_Publish_Cust(led_info_struct[Led_index].LedTopic,
 					"Invalid format for time, please just enter seconds number", Leds);
 				}
-			}else
+			}
+			else if(subtopics[Led_index].command == Info_leds)
+			{
+				if((COMPARE_STR(leds_commands_struct[Info_leds].command_options[0],data,len))
+						|| (COMPARE_STR("",data,len)))
+				{
+					subtopics[Led_index].inform = TRUE;
+					Mqtt_Publish_Cust(strcat(led_info_struct[Led_index].LedTopic,"/Info"),
+					"Where x is 1, 2 or 3", Leds);
+					Mqtt_Publish_Subtopic_Info(leds_commands_struct, Number_of_Leds_Commands, Leds);
+				}
+				else
+				{
+
+				}
+			}
+			else
 			{
 				PRINT_MESG_UART("Command invalid");
 			}
@@ -189,21 +233,21 @@ static void Led_Action_Handler(Leds_t led_no, const char* data, u16_t len){
 		return;
 	}
 	action=None;
-	if(COMPARE_STR(ON,data,len)) {
+	if(COMPARE_STR(leds_commands_struct[Action].command_options[On],data,len)) {
 		action=On;
 		Mqtt_Publish_Cust(led_info_struct[led_no].LedTopic,"Led switched on" , Leds);
 	}
-	else if(COMPARE_STR(OFF,data,len))
+	else if(COMPARE_STR(leds_commands_struct[Action].command_options[Off],data,len))
 	{
 		action=Off;
 		Mqtt_Publish_Cust(led_info_struct[led_no].LedTopic,"Led switched off" , Leds);
 	}
-	else if(COMPARE_STR(TOGGLE,data,len))
+	else if(COMPARE_STR(leds_commands_struct[Action].command_options[Toggle],data,len))
 	{
 		action=Toggle;
 		Mqtt_Publish_Cust(led_info_struct[led_no].LedTopic,"Led Toggled" , Leds);
 	}
-	else if(COMPARE_STR(STATUS,data,len))
+	else if(COMPARE_STR(leds_commands_struct[Action].command_options[3],data,len))
 	{
 		sprintf(msg, "Led %d status is %d",led_no+1, HAL_GPIO_ReadPin(gpio_led, pin) );
 		Mqtt_Publish_Cust(led_info_struct[led_no].LedTopic,msg , Leds);
@@ -220,28 +264,39 @@ static void Led_Action_Handler(Leds_t led_no, const char* data, u16_t len){
 
 
 static void Leds_Hw_Action(GPIO_TypeDef* gpio_led, u16_t pin, Led_Action_t action){
-	if (action == Toggle){
+	if (action == Toggle)
+	{
 		HAL_GPIO_TogglePin(gpio_led, pin);
-	}else if (action == On || action == Off){
+	}
+	else if (action == On || action == Off){
+
 		HAL_GPIO_WritePin(gpio_led, pin , action);
-	}else {
+	}
+	else
+	{
 		//error
 		Mqtt_Publish_Cust("","Internal error" , Leds);
 	}
 }
 
 static void Leds_Get_GPIO_and_Pin(Leds_t led_no,GPIO_TypeDef ** gpio_led, u16_t *pin){
-	if(led_no == Led1){
+	if(led_no == Led1)
+	{
 		*gpio_led = LD1_GPIO_Port;
 		*pin = LD1_Pin;
-	}else if(led_no == Led2){
+	}
+	else if(led_no == Led2)
+	{
 		*gpio_led = LD2_GPIO_Port;
 		*pin = LD2_Pin;
 	}
-	else if (led_no ==Led3){
+	else if (led_no ==Led3)
+	{
 		*gpio_led = LD3_GPIO_Port;
 		*pin = LD3_Pin;
-	}else  {
+	}
+	else
+	{
 		PRINT_MESG_UART("Failed to set pointer \n");
 		Mqtt_Publish_Cust("","Internal error", Leds);
 	}

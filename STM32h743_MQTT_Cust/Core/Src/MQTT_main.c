@@ -14,28 +14,28 @@
 #include "MQTT_heartbeat.h"
 #include "MQTT_main.h"
 
-/*
- * THIS PROJECT IS A REMINDER TO MYSELF TO NOT USE DINAMIC MEMORY IN EMBEDDED SYSTEMS
- *
- * WHEN THIS WAS ORIGINALLY MADE ALLOCATING MEMORY IT WAS GETTING CORRUPTED.
- * */
+
 #define WELCOMEMESSAGE          " Hi, Device online... \n"
 #define AVAILABLETOPICS         "Available topics are: \n"
 #define OUTPUT     				"/Output"
 #define INPUT     				"/Input"
 #define SUSCRIBE_TOPIC   		"/#"
-#define INFO_TOPIC 				"/Info"
-#define LEDS_TOPIC 				"/Leds"
-#define ID_TOPIC 				"/Id"
-#define BUTTON_TOPIC 			"/Button"
-#define HB_TOPIC 			    "/HeartBeat"
 #define MOREINFOMSG             "For more information please send"
-#define MOREINFOMSG2            "/Input/(desired_topic)/Info with data GET"
+#define MOREINFOMSG2            "/Input/(desired_topic)/Info with data GET or empty"
 #define FREE_TIMER_1			TIM2
 #define HB_TIMER 			    TIM3
 #define LEDS_TIMER 	     	    TIM4
 #define FREE_TIMER_2 		    TIM5
 
+
+static const char *topics_array_names[Number_Of_Topics] =
+{
+	"/Info",
+	"/Leds",
+	"/Id",
+	"/Button",
+	"/HeartBeat"
+};
 
 /*FileStructures*/
 typedef struct mqtt_topics_info_s{
@@ -182,7 +182,7 @@ void Mqtt_Publish_Subtopic_Info(const commands_info_struct_t *topic_info,uint8_t
 		Mqtt_Topics_t sender)
 {
 	char info_msg[MQTT_OUTPUT_RINGBUF_SIZE];
-	u8_t message_char_counter= 0;
+	u16_t message_char_counter= 0;
 	uint8_t topics_available;
 
 	/*Print valid topics*/
@@ -196,17 +196,18 @@ void Mqtt_Publish_Subtopic_Info(const commands_info_struct_t *topic_info,uint8_t
 			PRINT_MESG_UART("Array not big enough for printing all topics\n");
 			return;
 		}
-		sprintf(&info_msg[message_char_counter],"%s%s \nWith option(s)\n",
-				mqtt_topics_info[sender].Output_topic,topic_info[topics_available].command_name);
+		sprintf(&info_msg[message_char_counter],"*%s%s \n With option(s)\n",
+				mqtt_topics_info[sender].Input_topic,topic_info[topics_available].command_name);
 
 		for (u8_t number_of_commands = 0; number_of_commands < topic_info[topics_available].number_commands;
 				number_of_commands++)
 		{
 			message_char_counter= strlen(info_msg);
-			sprintf(&info_msg[message_char_counter],"%s \n",
+			sprintf(&info_msg[message_char_counter],"  -%s \n",
 							topic_info[topics_available].command_options[number_of_commands]);
 		}
 	}
+	message_char_counter= strlen(info_msg);
 	PRINT_MESG_UART("%d\n",message_char_counter);
 
 	Mqtt_Publish_Cust("/Info", info_msg , sender);
@@ -250,7 +251,7 @@ static void Mqtt_Publish_Valid_Topics(mqtt_topics_info_t* device_topics_print, u
 		return;
 	}
 
-	sprintf(&Topicinfomsg[message_char_counter],"%s %s %s",MOREINFOMSG, CONFIG_CLIENT_ID_NAME,MOREINFOMSG2);
+	sprintf(&Topicinfomsg[message_char_counter],"%s %s%s",MOREINFOMSG, CONFIG_CLIENT_ID_NAME,MOREINFOMSG2);
 
 	err = mqtt_publish(&mqtt_client,device_topics_print[Info].Output_topic , Topicinfomsg, strlen(Topicinfomsg),
 			qos, retain, Mqtt_Pub_Request_CB, NULL);
@@ -263,11 +264,11 @@ static void Mqtt_Publish_Valid_Topics(mqtt_topics_info_t* device_topics_print, u
 static void Mqtt_Init_All_Topics(mqtt_topics_info_t* device_topics_init)
 {
 	Utils_Concatenate(mqtt_device_suscription,CONFIG_CLIENT_ID_NAME,INPUT,SUSCRIBE_TOPIC);
-	Mqtt_Intialize_Topic(device_topics_init, Info ,INFO_TOPIC,NULL, NULL,0);
-	Mqtt_Intialize_Topic(device_topics_init, Leds ,LEDS_TOPIC,Leds_Data_Handler, Leds_Subtopics_Handler,1);
-	Mqtt_Intialize_Topic(device_topics_init, Id ,ID_TOPIC,Id_Data_Handler, Id_Subtopics_Handler,2);
-	Mqtt_Intialize_Topic(device_topics_init, Heartbeat ,HB_TOPIC,Hb_Data_Handler, Hb_Subtopics_Handler,0);
-	Mqtt_Intialize_Topic(device_topics_init, Button ,BUTTON_TOPIC,NULL, NULL,0);
+	Mqtt_Intialize_Topic(device_topics_init, Info ,topics_array_names[Info],NULL, NULL,0);
+	Mqtt_Intialize_Topic(device_topics_init, Leds ,topics_array_names[Leds],Leds_Data_Handler, Leds_Subtopics_Handler,1);
+	Mqtt_Intialize_Topic(device_topics_init, Id ,topics_array_names[Id],Id_Data_Handler, Id_Subtopics_Handler,2);
+	Mqtt_Intialize_Topic(device_topics_init, Heartbeat ,topics_array_names[Heartbeat],Hb_Data_Handler, Hb_Subtopics_Handler,0);
+	Mqtt_Intialize_Topic(device_topics_init, Button ,topics_array_names[Button],NULL, NULL,0);
 }
 
 /*Function to initialize topics/subtopics modules with minimum information
@@ -382,12 +383,12 @@ static void Mqtt_Incoming_Publish_CB(void *arg, const char *topic, u32_t tot_len
  * Redirects the information to subtopic handler information
  * */
 static void Mqtt_Incoming_Data_CB(void *arg, const u8_t *data, u16_t len, u8_t flags) {
-	u8_t msg[MQTT_VAR_HEADER_BUFFER_LEN+1u];
+	//u8_t msg[MQTT_VAR_HEADER_BUFFER_LEN+1u];
 	mqtt_topics_info_t* Incoming_data = arg;
 	Mqtt_Topics_t Topic_received;
-	MEMCPY(msg,data,len);
-	msg[len]=0;
-	PRINT_MESG_UART("Incoming publish payload with length %d, flags %u\n", len, (unsigned int)flags);
+	//MEMCPY(msg,data,len);
+	//msg[len]=0;
+	//PRINT_MESG_UART("Incoming publish payload with length %d, flags %u\n", len, (unsigned int)flags);
 	//PRINT_MESG_UART("Data: %s, \n\n", msg );
 
 	/* Last fragment of payload received (or whole part if payload fits receive buffer

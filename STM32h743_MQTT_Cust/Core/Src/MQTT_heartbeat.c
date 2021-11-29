@@ -22,16 +22,16 @@ typedef struct hb_info_struct_type{
 }hb_info_struct_t;
 
 static char const *Status_options[] ={"ON", "OFF"};
-static char const *Info_options[] =   {"GET"};
+static char const *Info_options[] =   {"GET","(null)"};
 static char const *Time_options[] =   {"(Number of seconds to set HeartBeat Pulse)"};
 
 #define HB_COMMANDS_MASTER_ARRAY  			            				 \
-		{Time      ,	"/Time", (char**)Time_options , sizeof(Time_options)/sizeof(char**) },\
-		{Status    ,       	"" ,  (char**)Status_options , sizeof(Status_options)/sizeof(char**) },\
-		{Info_HB   ,   	"/Info", (char**)Info_options    , sizeof(Info_options)/sizeof(char**) },\
+		{Time      ,	"/Time", (char**)Time_options   , sizeof(Time_options)  /sizeof(char**) },\
+		{Status    ,       	"" , (char**)Status_options , sizeof(Status_options)/sizeof(char**) },\
+		{Info_HB   ,   	"/Info", (char**)Info_options   , sizeof(Info_options)  /sizeof(char**) },\
 
 static const commands_info_struct_t hb_commands_struct[Number_Of_Actions]={HB_COMMANDS_MASTER_ARRAY};
-static hb_info_struct_t hb_info_struct = {FALSE,TRUE,10};
+static hb_info_struct_t hb_info_struct = {Number_Of_Actions,TRUE,10};
 
 
 void Hb_Timer_Handler(TIM_HandleTypeDef *htim){
@@ -108,7 +108,8 @@ void Hb_Data_Handler(const char * data, u16_t len , void* subtopics_void){
 			Mqtt_Publish_Cust("","Invalid data ON/OFF", Heartbeat);
 		}
 	}else if (HB_info_incoming->action_pending == Info_HB){
-		if (COMPARE_STR(hb_commands_struct[Info_HB].command_options[0],data,len)){
+		if ((COMPARE_STR(hb_commands_struct[Info_HB].command_options[0],data,len))
+				||(COMPARE_STR("",data,len))){
 			Mqtt_Publish_Subtopic_Info(hb_commands_struct, Number_Of_Actions, Heartbeat);
 		}
 		else
