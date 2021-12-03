@@ -47,7 +47,7 @@ void Hb_Timer_Handler(TIM_HandleTypeDef *htim){
 void* Hb_Subtopics_Handler(const char *subtopic){
 	PRINT_MESG_UART("HeartBeat topic detected %s\n", subtopic);
 
-	if(strcmp(subtopic, hb_commands_struct[Status].command_name) == 0)
+	if(strcmp(subtopic, hb_commands_struct[Time].command_name) == 0)
 	{
 		hb_info_struct.action_pending = Time;
 		PRINT_MESG_UART("Time change detected%d\n");
