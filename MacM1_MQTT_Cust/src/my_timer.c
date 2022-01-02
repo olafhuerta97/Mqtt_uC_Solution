@@ -30,7 +30,6 @@ struct timer_node
     time_handler        callback;
     void *              user_data;
     unsigned int        interval;
-    struct timer_node * next;
 };
 void diep(const char *s);
 static void * _timer_thread(void * data);

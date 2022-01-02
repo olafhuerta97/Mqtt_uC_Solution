@@ -130,25 +130,25 @@ void Mqtt_Publish_Cust(const char *subtopic, const char *pub_payload,Mqtt_Topics
 	}
 }
 
-
+/**
+ * Mqtt_Do_Connect
+ *
+ * brief. Connect to the Mqtt Broker and initialize topics.
+ */
 u8_t Mqtt_Do_Connect(void) {
 	char willmessage[50];
 	ip4_addr_t broker_ipaddr;
 	struct mqtt_connect_client_info_t ci;
 	err_t err;
 
-
-
+	/*Prepare the will message to be display in broker when client is disconnected*/
 	sprintf(willmessage,"%s is offline", CONFIG_CLIENT_ID_NAME);
-
+	/*Format the ip address of the MQTT broker*/
 	IP4_ADDR(&broker_ipaddr, configIP_MQTT_ADDR0, configIP_MQTT_ADDR1, configIP_MQTT_ADDR2,
 			configIP_MQTT_ADDR3);
 
-
-	/* Initiate client and connect to server, if this fails immediately an error code is returned
-   otherwise Mqtt_Connection_CB will be called with connection result after attempting
-   to establish a connection with the server.
-   For now MQTT version 3.1.1 is always used */
+	/*If is the first time that connection is called then initialize the
+	 * topics and callbacks*/
 	if (mqtt_topics_initializated_flag == FALSE)
 	{
 		Mqtt_Init_All_Topics(mqtt_topics_info);
@@ -158,21 +158,31 @@ u8_t Mqtt_Do_Connect(void) {
 	/* Setup an empty client info structure */
 	memset(&ci, 0, sizeof(ci));
 	/* Minimal amount of information required is client identifier, so set it here */
+	/* Also set the username and password to connect to broker*/
 	ci.client_id = CONFIG_CLIENT_ID_NAME;
 	ci.client_user = CONFIG_CLIENT_USER_NAME;
 	ci.client_pass = CONFIG_CLIENT_USER_PASSWORD;
 	ci.keep_alive = 30u; /* keep alive functionality 30 seconds since module is not sleeping*/
+	/*Set the will message for registration*/
 	ci.will_msg = willmessage;
-	ci.will_qos=0u;
+	/*QoS is not that important in this message for information purposues*/
+	ci.will_qos=2u;
+	/*It should be retained*/
 	ci.will_retain = 1u;
+	/*Publishing will to info topic*/
 	ci.will_topic = mqtt_topics_info[Info].Output_topic;
 
+	/* Initiate client and connect to server, if this fails immediately an error code is returned
+   otherwise Mqtt_Connection_CB will be called with connection result after attempting
+   to establish a connection with the server.
+   For now MQTT version 3.1.1 is always used */
 	PRINT_MESG_UART("Trying to connect:\n");
 	err = mqtt_client_connect(&mqtt_client, &broker_ipaddr, MQTT_PORT,
 			Mqtt_Connection_CB, (mqtt_topics_info_t*)mqtt_topics_info, &ci);
 	/* Just print the result code if something goes wrong */
 	if(err != ERR_OK)
 	{
+		/*For now if not success we will just print and error*/
 		PRINT_MESG_UART("mqtt_connect error: %d\n", err);
 	}
 	return err;

@@ -48,7 +48,7 @@ static char const *info_options[] =   {"GET", "(null)"};
 
 
 typedef struct leds_info_s{
-	char LedTopic[LEDNUMBERSTRINGSIZE];
+	const char LedTopic[LEDNUMBERSTRINGSIZE];
 	u8_t 		action_pending;
 	Leds_Commands_t 	command;
 	u8_t      	inform;
@@ -195,8 +195,7 @@ void Leds_Data_Handler(const char * data, u16_t len , void* subtopics_void){
 						|| (COMPARE_STR("",data,len)))
 				{
 					subtopics[Led_index].inform = TRUE;
-					Mqtt_Publish_Cust(strcat(led_info_struct[Led_index].LedTopic,"/Info"),
-					"Where x is 1, 2 or 3", Leds);
+					Mqtt_Publish_Cust("/Info","Where x is 1, 2 or 3", Leds);
 					Mqtt_Publish_Subtopic_Info(leds_commands_struct, Number_of_Leds_Commands, Leds);
 				}
 				else
