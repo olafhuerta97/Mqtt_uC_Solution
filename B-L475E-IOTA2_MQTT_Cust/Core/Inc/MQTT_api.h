@@ -1,6 +1,6 @@
 /**
   ******************************************************************************
-  * @file    GenericMQTTXCubeSample.h
+  * @file    MQTT_api.h
   * @author  MCD Application Team
   * @brief   External definitions for GenericMQTTCubeSample.c
   ******************************************************************************
@@ -46,7 +46,16 @@
 #ifndef __GenericMQTTXCubeSample_H
 #define __GenericMQTTXCubeSample_H
 
-/** TLS connection security level */
+#include "timingSystem.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdbool.h>
+#include "main.h"
+#include "MQTTClient.h"
+#include "paho_mqtt_platform.h"
+
+
 typedef enum {
   CONN_SEC_UNDEFINED = -1,    
   CONN_SEC_NONE = 0,          /**< Clear connection */

@@ -1,6 +1,6 @@
 /**
  ******************************************************************************
- * @file    GenericMQTTXcubeSample.c
+ * @file    MQTT_api.c
  * @author  MCD Application Team
  * @brief   Generic MQTT IoT connection example.
  *          Basic telemetry on sensor-equipped boards.
@@ -45,15 +45,7 @@
  */
 
 /* Includes ------------------------------------------------------------------*/
-#include "timingSystem.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdbool.h>
-#include "main.h"
-#include "MQTTClient.h"
-#include "paho_mqtt_platform.h"
-#include "GenericMQTTXCubeSample.h"
+#include "MQTT_api.h"
 
 /* The init/deinit netif functions are called from cloud.c.
  * However, the application needs to reinit whenever the connectivity seems to be broken. */
@@ -126,6 +118,12 @@ void free_device_config(device_config_t * config);
 int string_allocate_from_token(char ** pDestString, char * tokenName, const char * sourceString);
 
 /* Exported functions --------------------------------------------------------*/
+
+uint8_t mqtt_client_connect(MQTTClient* client, void *brokerip, uint16_t port,
+		void *connectioncb,void *userdata, MQTTPacket_connectData *options){
+
+}
+
 
 int cloud_device_enter_credentials(void)
 {
