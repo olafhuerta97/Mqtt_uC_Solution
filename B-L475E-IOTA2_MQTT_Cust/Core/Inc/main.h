@@ -62,6 +62,8 @@ void PRINT_MESG_UART(const char * format, ... );
 #define NET_IF  NET_IF_WLAN
 #endif
 
+void PRINT_MESG_UART(const char * format, ... );
+
 typedef uint8_t u8_t;
 typedef uint16_t u16_t;
 typedef uint32_t u32_t;

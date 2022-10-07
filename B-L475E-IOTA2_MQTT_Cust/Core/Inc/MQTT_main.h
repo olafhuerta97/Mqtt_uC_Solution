@@ -11,6 +11,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include "main.h"
+#include "MQTTClient.h"
 #include "MQTT_config.h"
 #include "MQTT_utils_cust.h"
 
@@ -42,7 +43,7 @@ typedef struct availableCommands_type {
 u8_t Mqtt_Do_Connect(void);
 void Mqtt_Ext_Int_ISR_Handler(u16_t GPIO_Pin);
 void Mqtt_Timer_ISR_Handler(TIM_HandleTypeDef *htim);
-
+void MQTTYield_Cust(void);
 void Mqtt_Publish_Cust(const char *subtopic, const char *pub_payload,Mqtt_Topics_t sender);
 void Mqtt_Publish_Subtopic_Info(const commands_info_struct_t *topic_info,uint8_t number_of_commands,Mqtt_Topics_t sender);
 

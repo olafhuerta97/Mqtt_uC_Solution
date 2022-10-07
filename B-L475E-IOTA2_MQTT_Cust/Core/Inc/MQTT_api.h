@@ -55,6 +55,21 @@
 #include "MQTTClient.h"
 #include "paho_mqtt_platform.h"
 
+typedef struct {
+	char *HostName;
+	char *HostPort;
+	char *ConnSecurity;
+} device_config_t;
+
+int mqtt_client_suscribe(MQTTClient* client,const char *topic, enum QoS qos,  messageHandler messageHandler);
+
+uint8_t mqtt_client_connect(MQTTClient* client, device_config_t*  device_config, uint16_t port,
+		void *connectioncb,void *userdata, MQTTPacket_connectData *options);
+
+void MQTTYield_Cust(void);
+
+int mqtt_publish(MQTTClient *client, const char * topic,const char * msg,uint16_t len,
+			uint8_t qos, uint8_t retain, void * Mqtt_Pub_Request_CB, void *user);
 
 typedef enum {
   CONN_SEC_UNDEFINED = -1,    

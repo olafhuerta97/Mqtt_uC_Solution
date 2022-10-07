@@ -78,7 +78,7 @@
 #elif CONFIG_USE_BROKER_LOCAL
   #define CONFIG_BROKER_HOST_NAME       "Rasp-Pi"
   #define CONFIG_BROKER_HOST_IP       	"192.168.0.160"
-  #define CONFIG_CLIENT_ID_NAME         "H743" /* each client connected to the host has to use a unique ID */
+  #define CONFIG_CLIENT_ID_NAME         "B-L475" /* each client connected to the host has to use a unique ID */
   #define CONFIG_CLIENT_USER_NAME       "olaf" /* no user name */
   #define CONFIG_CLIENT_USER_PASSWORD   "olaf97" /* no password */
   #define MAX_LENGTH_TOPIC              30

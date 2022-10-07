@@ -110,12 +110,14 @@ int main(void)
   /* USER CODE BEGIN 2 */
   HAL_Delay(300);
   HAL_TIM_Base_Start_IT(&htim5);
+  Mqtt_Do_Connect();
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	  MQTTYield_Cust();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -401,6 +403,10 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
+
 }
 
 /* USER CODE BEGIN 4 */
@@ -409,10 +415,52 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	Mqtt_Timer_ISR_Handler(htim);
 }
 
+#define PRINT  1
+void PRINT_MESG_UART(const char * format, ... )
+{
+#if PRINT
+	va_list ap;
+	uint8_t buffer [128];
+	unsigned int n;
+	va_start(ap, format);
+	n = vsnprintf ((char*)buffer, (unsigned int)128, format, ap);
+	va_end(ap);
+	if(HAL_UART_Transmit(&huart1, (uint8_t*)buffer, n, 300) != HAL_OK) {
+		Error_Handler();
+	}
+#endif
+}
+
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-	Mqtt_Ext_Int_ISR_Handler(GPIO_Pin);
+  switch (GPIO_Pin)
+  {
+    case (GPIO_PIN_13):
+    {
+    	Mqtt_Ext_Int_ISR_Handler(GPIO_Pin);
+      break;
+    }
+
+	case (GPIO_PIN_1):
+	{
+		SPI_WIFI_ISR();
+		break;
+	}
+
+    default:
+    {
+      break;
+    }
+  }
 }
+
+
+void SPI3_IRQHandler(void)
+{
+  HAL_SPI_IRQHandler(&hspi);
+}
+
+
 /* USER CODE END 4 */
 
 /**

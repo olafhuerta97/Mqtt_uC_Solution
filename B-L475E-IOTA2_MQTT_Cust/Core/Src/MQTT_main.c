@@ -65,12 +65,11 @@ static void Mqtt_Intialize_Topic(mqtt_topics_info_t* device_topics_init, Mqtt_To
 		const char* Topic_Name,void* TopicHandler, void * SubtopicHandler,u8_t QoS );
 
 /*Callback for events*/
-static void Mqtt_Connection_CB(mqtt_client_t *client, void *arg, mqtt_connection_status_t status);
-static void Mqtt_Sub_Request_CB(void *arg, err_t result) ;
+void Mqtt_Sub_Request_CB(void *arg, err_t result) ;
 static void Mqtt_Incoming_Publish_CB(void *arg, const char *topic, u32_t tot_len);
 static void Mqtt_Incoming_Data_CB(void *arg, const u8_t *data, u16_t len, u8_t flags);
 static void Mqtt_Pub_Request_CB(void *arg, err_t result);
-
+void Mqtt_Incoming_Publish_CB_handler(MessageData* data);
 /*Default handlers Declaration*/
 static void* Mqtt_Default_SubTopics_Handler(const char *subtopic);
 static void Mqtt_Default_Data_Handler(const char * data, u16_t len , void* subtopics_void);
@@ -78,7 +77,7 @@ static void Mqtt_Default_Data_Handler(const char * data, u16_t len , void* subto
 /*Function call every time the button is pressed*/
 void Mqtt_Ext_Int_ISR_Handler(u16_t GPIO_Pin)
 {
-	if (GPIO_Pin == 0)
+	if (GPIO_Pin == GPIO_PIN_13)
 	{
 		Button_ISR_Handler();
 	}
@@ -117,6 +116,11 @@ void Mqtt_Publish_Cust(const char *subtopic, const char *pub_payload,Mqtt_Topics
 	}
 }
 
+
+void MQTTYield_Cust(void){
+	MQTTYield(&mqtt_client, 5000);
+}
+
 /**
  * Mqtt_Do_Connect
  *
@@ -124,8 +128,12 @@ void Mqtt_Publish_Cust(const char *subtopic, const char *pub_payload,Mqtt_Topics
  */
 u8_t Mqtt_Do_Connect(void) {
 	char willmessage[50];
-	MQTTPacket_connectData ci;
+	MQTTPacket_connectData ci = MQTTPacket_connectData_initializer;
 	err_t err;
+	device_config_t device_config;
+
+	device_config.HostName = "colinashdlv.dyndns.org";
+	device_config.HostPort = "8090";
 
 	/*Prepare the will message to be display in broker when client is disconnected*/
 	sprintf(willmessage,"%s is offline", CONFIG_CLIENT_ID_NAME);
@@ -139,7 +147,6 @@ u8_t Mqtt_Do_Connect(void) {
 	}
 
 	/* Setup an empty client info structure */
-	memset(&ci, 0, sizeof(ci));
 	/* Minimal amount of information required is client identifier, so set it here */
 	/* Also set the username and password to connect to broker*/
 	//ci.client_id = CONFIG_CLIENT_ID_NAME;
@@ -161,16 +168,40 @@ u8_t Mqtt_Do_Connect(void) {
    to establish a connection with the server.
    For now MQTT version 3.1.1 is always used */
 	PRINT_MESG_UART("Trying to connect:\n");
-	err = mqtt_client_connect(&mqtt_client, NULL, MQTT_PORT,
-			Mqtt_Connection_CB, (mqtt_topics_info_t*)mqtt_topics_info, &ci);
+	err = mqtt_client_connect(&mqtt_client, &device_config, MQTT_PORT,
+			NULL, (mqtt_topics_info_t*)mqtt_topics_info, &ci);
 	/* Just print the result code if something goes wrong */
 	if(err != ERR_OK)
 	{
 		/*For now if not success we will just print and error*/
 		PRINT_MESG_UART("mqtt_connect error: %d\n", err);
 	}
+	else
+	{
+		err = mqtt_client_suscribe(&mqtt_client,"#", 0, Mqtt_Incoming_Publish_CB_handler);
+	/* Just print the result code if something goes wrong */
+		if(err != ERR_OK)
+		{
+			/*For now if not success we will just print and error*/
+			PRINT_MESG_UART("mqtt_connect error: %d\n", err);
+		}else{
+			Mqtt_Publish_Valid_Topics(mqtt_topics_info, TRUE);
+		}
+	}
 	return err;
 }
+
+/** Message handler
+ *
+ *  Note: No context handle is passed by the callback. Must rely on static variables.
+ *        TODO: Maybe store couples of hander/contextHanders so that the context could
+ *              be retrieved from the handler address. */
+void Mqtt_Incoming_Publish_CB_handler(MessageData* data)
+{
+	Mqtt_Incoming_Publish_CB(mqtt_topics_info, data->topicName->cstring, data->message->payloadlen);
+	Mqtt_Incoming_Data_CB(mqtt_topics_info, data->message->payload, data->message->payloadlen, 1);
+}
+
 
 void Mqtt_Publish_Subtopic_Info(const commands_info_struct_t *topic_info,uint8_t number_of_commands,
 		Mqtt_Topics_t sender)
@@ -311,7 +342,7 @@ static void Mqtt_Intialize_Topic(mqtt_topics_info_t* device_topics_init, Mqtt_To
 }
 
 
-static void Mqtt_Sub_Request_CB(void *arg, err_t result)
+void Mqtt_Sub_Request_CB(void *arg, err_t result)
 {
 	/* Just print the result code here for simplicity,
 	 * normal behavior would be to take some action if subscribe fails like

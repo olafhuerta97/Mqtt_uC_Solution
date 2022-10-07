@@ -77,14 +77,7 @@ typedef struct {
 	uint32_t  TelemetryInterval;
 } status_data_t;
 
-typedef struct {
-	char *HostName;
-	char *HostPort;
-	char *ConnSecurity;
-	char *MQClientId;
-	char *MQUserName;
-	char *MQUserPwd;
-} device_config_t;
+
 
 /* Private macro -------------------------------------------------------------*/
 #define MIN(a,b)  (((a) < (b)) ? (a) : (b))
@@ -116,14 +109,109 @@ void allpurposeMessageHandler(MessageData* data);
 int parse_and_fill_device_config(device_config_t ** pConfig, const char *string);
 void free_device_config(device_config_t * config);
 int string_allocate_from_token(char ** pDestString, char * tokenName, const char * sourceString);
-
+static unsigned char mqtt_send_buffer[MQTT_SEND_BUFFER_SIZE];
+static unsigned char mqtt_read_buffer[MQTT_READ_BUFFER_SIZE];
 /* Exported functions --------------------------------------------------------*/
 
-uint8_t mqtt_client_connect(MQTTClient* client, void *brokerip, uint16_t port,
+uint8_t mqtt_client_connect(MQTTClient* client, device_config_t *device_config, uint16_t port,
 		void *connectioncb,void *userdata, MQTTPacket_connectData *options){
+	conn_sec_t connection_security  = CONN_SEC_NONE;
+	Network network;
 
+	memset(&pub_data, 0, sizeof(pub_data));
+	platform_init();
+	/* Initialize the defaults of the published messages. */
+	net_macaddr_t mac = { 0 };
+	net_get_mac_address(hnet, &mac);
+	strncpy(pub_data.mac, status_data.mac, MODEL_MAC_SIZE - 1);
+
+	status_data.TelemetryInterval = MODEL_DEFAULT_TELEMETRYINTERVAL;
+	/* Re-connection loop: Socket level, with a netIf reconnect in case of repeated socket failures. */
+
+	/* Init MQTT client */
+	net_sockhnd_t socket;
+	net_ipaddr_t ip;
+	int ret = 0;
+
+	/* If the socket connection failed MAX_SOCKET_ERRORS_BEFORE_NETIF_RESET times in a row,
+	 * even if the netif still has a valid IP address, we assume that the network link is down
+	 * and must be reset. */
+	if ( (net_get_ip_address(hnet, &ip) == NET_ERR) || (g_connection_needed_score > MAX_SOCKET_ERRORS_BEFORE_NETIF_RESET) )
+	{
+		msg_info("Network link %s down. Trying to reconnect.\n", (g_connection_needed_score > MAX_SOCKET_ERRORS_BEFORE_NETIF_RESET) ? "may be" : "");
+		if (net_reinit(hnet, (net_if_reinit)) != 0)
+		{
+			msg_error("Netif re-initialization failed.\n");
+		}
+		else
+		{
+			msg_info("Netif re-initialized successfully.\n");
+			HAL_Delay(1000);
+			g_connection_needed_score = 1;
+		}
+	}
+
+	ret = net_sock_create(hnet, &socket, (connection_security == CONN_SEC_NONE) ? NET_PROTO_TCP :NET_PROTO_TLS);
+	if (ret != NET_OK)
+	{
+		msg_error("Could not create the socket.\n");
+	}
+	else
+	{
+		switch(connection_security)
+		{
+		case CONN_SEC_NONE:
+			break;
+		default:
+			msg_error("Invalid connection security mode. - %d\n", connection_security);
+		}
+		ret |= net_sock_setopt(socket, "sock_noblocking", NULL, 0);
+	}
+
+	if (ret != NET_OK)
+	{
+		msg_error("Could not retrieve the security connection settings and set the socket options.\n");
+	}
+	else
+	{
+		ret = net_sock_open(socket, device_config->HostName, atoi(device_config->HostPort), 0);
+	}
+
+	if (ret != NET_OK)
+	{
+		msg_error("Could not open the socket at %s port %d.\n", device_config->HostName, atoi(device_config->HostPort));
+		g_connection_needed_score++;
+		HAL_Delay(1000);
+	}
+	else
+	{
+		network.my_socket = socket;
+		network.mqttread = (network_read);
+		network.mqttwrite = (network_write);
+
+		MQTTClientInit(client, &network, MQTT_CMD_TIMEOUT,
+				mqtt_send_buffer, MQTT_SEND_BUFFER_SIZE,
+				mqtt_read_buffer, MQTT_READ_BUFFER_SIZE);
+
+		/* MQTT connect */
+		//options = MQTTPacket_connectData_initializer;
+
+		ret = MQTTConnect(client, options);
+		if (ret != 0)
+		{
+			msg_error("MQTTConnect() failed: %d\n", ret);
+		}
+		else {
+			ret = MQTTYield(client, 500);
+		}
+
+	}
+	return ret;
 }
 
+int mqtt_client_suscribe(MQTTClient* client,const char *topic, enum QoS qos,  messageHandler messageHandler){
+	return MQTTSubscribe(client, topic, qos, messageHandler);
+}
 
 int cloud_device_enter_credentials(void)
 {
@@ -320,12 +408,12 @@ void genericmqtt_client_XCube_sample_run(void)
 
 			/* MQTT connect */
 			MQTTPacket_connectData options = MQTTPacket_connectData_initializer;
-			device_config.MQClientId = "B-L475";
-			device_config.MQUserName = "olaf";
-			device_config.MQUserPwd = "olaf97";
-			options.clientID.cstring = device_config.MQClientId;
-			options.username.cstring = device_config.MQUserName;
-			options.password.cstring = device_config.MQUserPwd;
+			//device_config.MQClientId = "B-L475";
+			//device_config.MQUserName = "olaf";
+			//device_config.MQUserPwd = "olaf97";
+			//options.clientID.cstring = device_config.MQClientId;
+			//options.username.cstring = device_config.MQUserName;
+			//options.password.cstring = device_config.MQUserPwd;
 
 			ret = MQTTConnect(&client, &options);
 			if (ret != 0)
@@ -417,6 +505,10 @@ void genericmqtt_client_XCube_sample_run(void)
 
 }
 
+int mqtt_publish(MQTTClient *client, const char * topic, const char * msg,uint16_t len,
+			uint8_t qos, uint8_t retain, void * Mqtt_Pub_Request_CB, void * user){
+	return stiot_publish(client, topic,  msg);
+}
 
 /**
  * MQTT publish API abstraction called by the metering loop.
@@ -500,9 +592,9 @@ int parse_and_fill_device_config(device_config_t ** pConfig, const char *string)
 			ret = string_allocate_from_token(&config->HostName, "HostName=", string);
 			ret |= string_allocate_from_token(&config->HostPort, "HostPort=", string);
 			ret |= string_allocate_from_token(&config->ConnSecurity, "ConnSecurity=", string);
-			ret |= string_allocate_from_token(&config->MQClientId, "MQClientId=", string);
-			ret |= string_allocate_from_token(&config->MQUserName, "MQUserName=", string);
-			ret |= string_allocate_from_token(&config->MQUserPwd, "MQUserPwd=", string);
+			//ret |= string_allocate_from_token(&config->MQClientId, "MQClientId=", string);
+			//ret |= string_allocate_from_token(&config->MQUserName, "MQUserName=", string);
+			//ret |= string_allocate_from_token(&config->MQUserPwd, "MQUserPwd=", string);
 
 			if (ret != 0)
 			{
@@ -530,9 +622,9 @@ void free_device_config(device_config_t * config)
 		if (config->HostName != NULL) free(config->HostName);
 		if (config->HostPort != NULL) free(config->HostPort);
 		if (config->ConnSecurity != NULL) free(config->ConnSecurity);
-		if (config->MQClientId != NULL) free(config->MQClientId);
-		if (config->MQUserName != NULL) free(config->MQUserName);
-		if (config->MQUserPwd != NULL) free(config->MQUserPwd);
+		//if (config->MQClientId != NULL) free(config->MQClientId);
+		//if (config->MQUserName != NULL) free(config->MQUserName);
+		//if (config->MQUserPwd != NULL) free(config->MQUserPwd);
 		free(config);
 	}
 }
